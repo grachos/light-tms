@@ -77,6 +77,10 @@ final class VehiculoRepo
         if (!empty($fila['placa'])) {
             $fila['placa'] = strtoupper((string) $fila['placa']);
         }
+        // Al cambiar los datos hay que volver a enviarlos al RNDC.
+        $fila['estado_rndc'] = 'borrador';
+        $fila['rndc_error']  = null;
+
         $sets = implode(', ', array_map(static fn ($c) => "$c = :$c", array_keys($fila)));
         $fila['id'] = $id;
         db()->prepare("UPDATE vehiculo SET $sets WHERE id = :id")->execute($fila);
@@ -86,7 +90,7 @@ final class VehiculoRepo
     public function listar(int $limite = 200): array
     {
         return db()->query(
-            'SELECT id, placa, cod_configuracion, remolque_placa, tenedor_num_id, estado_rndc
+            'SELECT id, placa, cod_configuracion, remolque_placa, tenedor_num_id, estado_rndc, rndc_ingreso_id
              FROM vehiculo ORDER BY id DESC LIMIT ' . (int) $limite
         )->fetchAll();
     }

@@ -33,9 +33,9 @@ declare(strict_types=1);
                     <td>
                         <a href="<?= e(ruta('vehiculo.editar', ['id' => (int) $v['id']])) ?>">Editar</a>
                         <?php if ($v['estado_rndc'] !== 'registrado'): ?>
-                            &middot; <a href="<?= e(ruta('vehiculo.registrar', ['id' => (int) $v['id']])) ?>">Registrar en RNDC</a>
+                            &middot; <a href="<?= e(ruta('vehiculo.registrar', ['id' => (int) $v['id']])) ?>"><?= !empty($v['rndc_ingreso_id']) ? 'Actualizar en RNDC' : 'Registrar en RNDC' ?></a>
                         <?php else: ?>
-                            &middot; <span class="ayuda">id <?= e($v['rndc_ingreso_id'] ?? '') ?></span>
+                            &middot; <span class="ayuda">RNDC id <?= e($v['rndc_ingreso_id'] ?? '') ?></span>
                         <?php endif; ?>
                     </td>
                 </tr>

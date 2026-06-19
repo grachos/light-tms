@@ -76,6 +76,9 @@ final class TerceroRepo
             $fila[$c] = ($valor === '' ? null : $valor);
         }
         $fila['es_conductor'] = !empty($datos['es_conductor']) ? 1 : 0;
+        // Al cambiar los datos hay que volver a enviarlos al RNDC.
+        $fila['estado_rndc'] = 'borrador';
+        $fila['rndc_error']  = null;
 
         $sets = implode(', ', array_map(static fn ($c) => "$c = :$c", array_keys($fila)));
         $fila['id'] = $id;
@@ -86,7 +89,7 @@ final class TerceroRepo
     public function listar(int $limite = 200): array
     {
         return db()->query(
-            'SELECT id, tipo_id, num_id, nombre, municipio_nombre, es_conductor, estado_rndc
+            'SELECT id, tipo_id, num_id, nombre, municipio_nombre, es_conductor, estado_rndc, rndc_ingreso_id
              FROM tercero ORDER BY id DESC LIMIT ' . (int) $limite
         )->fetchAll();
     }
