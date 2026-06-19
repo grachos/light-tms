@@ -33,15 +33,17 @@ final class RndcClient
     private const SOAP_ACTION = 'urn:BPMServicesIntf-IBPMServices#AtenderMensajeRNDC';
     private const NS_URN      = 'urn:BPMServicesIntf-IBPMServices';
 
-    /** Tipo de solicitud para ingresar/expedir información. */
-    public const TIPO_INGRESAR = '1';
+    /** Tipos de solicitud (elemento <solicitud><tipo>). */
+    public const TIPO_INGRESAR           = '1'; // Registrar info en procesos y maestros
+    public const TIPO_CONSULTAR_MAESTRO  = '2'; // Consultar registros de maestros
+    public const TIPO_CONSULTAR_PROCESO  = '3'; // Consultar documentos/registros de un proceso
 
     /** Procesos enrutados a servidores específicos en producción. */
     private const PROCESOS_EXPEDIR   = [3, 4];               // Remesa, Manifiesto
     private const PROCESOS_CONSULTAS = [26, 27, 48, 55];     // Consultas
 
     private const HOSTS = [
-        'pruebas'   => 'http://rndc.mintransporte.gov.co:8080',
+        'pruebas'   => 'http://rndcpruebas.mintransporte.gov.co:8080',
         'expedir'   => 'http://rndcws2.mintransporte.gov.co:8080',
         'consultas' => 'http://plc.mintransporte.gov.co:8080',
         'otros'     => 'http://rndcws.mintransporte.gov.co:8080',
@@ -107,10 +109,103 @@ final class RndcClient
     public function enviar(string $tipo, int $procesoid, array $variables, ?array $documento = null): RndcRespuesta
     {
         $xmlInterno = $this->construirXmlInterno($tipo, $procesoid, $variables, $documento);
-        $sobre      = $this->construirSobreSoap($xmlInterno);
         $url        = $this->endpointPara($procesoid);
 
-        // El RNDC trabaja en ISO-8859-1.
+        [$httpCode, $respuestaUtf8, $errConn] = $this->postSoap($xmlInterno, $url);
+
+        if ($errConn !== null) {
+            return RndcRespuesta::fallo($errConn, 0, '', $xmlInterno);
+        }
+        if ($httpCode < 200 || $httpCode >= 300) {
+            return RndcRespuesta::fallo("HTTP $httpCode", $httpCode, $respuestaUtf8, $xmlInterno);
+        }
+        return $this->parsearRespuesta($respuestaUtf8, $httpCode, $xmlInterno);
+    }
+
+    /**
+     * Consulta documentos/registros de un proceso del RNDC (tipo = 3 por defecto).
+     *
+     * @param int                       $procesoid proceso a consultar (p.ej. 4 = Manifiesto)
+     * @param string[]                  $campos    variables a devolver
+     * @param array<string,scalar|null> $filtro    criterios exactos (van en <documento>)
+     * @param array<string,scalar|null> $rango     rangos (van en <documentorango>),
+     *                                            p.ej. ['iniFECHAING'=>"'2020/01/01'", ...]
+     */
+    public function consultar(
+        int $procesoid,
+        array $campos,
+        array $filtro,
+        array $rango = [],
+        string $tipo = self::TIPO_CONSULTAR_PROCESO,
+        ?string $url = null,
+    ): RndcRespuesta {
+        $xmlInterno = $this->construirXmlConsulta($tipo, $procesoid, $campos, $filtro, $rango);
+        $url ??= $this->endpointConsultas();
+
+        [$httpCode, $respuestaUtf8, $errConn] = $this->postSoap($xmlInterno, $url);
+
+        if ($errConn !== null) {
+            return RndcRespuesta::fallo($errConn, 0, '', $xmlInterno);
+        }
+        if ($httpCode < 200 || $httpCode >= 300) {
+            return RndcRespuesta::fallo("HTTP $httpCode", $httpCode, $respuestaUtf8, $xmlInterno);
+        }
+
+        $return = $this->extraerNodo($respuestaUtf8, 'return') ?? $respuestaUtf8;
+        $error  = $this->extraerNodo($return, 'ErrorMSG') ?? $this->extraerNodo($return, 'error');
+        if ($error !== null) {
+            return RndcRespuesta::fallo($error, $httpCode, $return, $xmlInterno);
+        }
+        // Cada <documento> del resultado es una fila.
+        $datos = $this->parsearDocumentos($return);
+        return RndcRespuesta::exito('', $httpCode, $return, $xmlInterno, $datos);
+    }
+
+    /**
+     * Convierte la respuesta de consulta en filas asociativas (una por <documento>).
+     *
+     * @return list<array<string,string>>
+     */
+    private function parsearDocumentos(string $xml): array
+    {
+        $xml = preg_replace('/<\?xml[^>]*\?>/i', '', $xml) ?? $xml;
+        $xml = trim($xml);
+        if ($xml === '') {
+            return [];
+        }
+        $dom = new DOMDocument();
+        $previo = libxml_use_internal_errors(true);
+        $ok = $dom->loadXML($xml);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previo);
+        if (!$ok) {
+            return [];
+        }
+        $filas = [];
+        foreach ($dom->getElementsByTagName('documento') as $doc) {
+            $fila = [];
+            foreach ($doc->childNodes as $campo) {
+                if ($campo instanceof DOMElement) {
+                    $fila[$campo->nodeName] = trim($campo->textContent);
+                }
+            }
+            if ($fila !== []) {
+                $filas[] = $fila;
+            }
+        }
+        return $filas;
+    }
+
+    /**
+     * Ejecuta el POST SOAP y devuelve [httpCode, respuestaUTF8, errorConexion|null].
+     *
+     * @return array{0:int,1:string,2:?string}
+     */
+    private function postSoap(string $xmlInterno, string $url): array
+    {
+        $sobre = $this->construirSobreSoap($xmlInterno);
+
+        // El envío se hace en ISO-8859-1 (como el cliente original).
         $cuerpo = mb_convert_encoding($sobre, 'ISO-8859-1', 'UTF-8');
 
         $ch = curl_init($url);
@@ -132,7 +227,7 @@ final class RndcClient
         curl_close($ch);
 
         if ($respuesta === false) {
-            return RndcRespuesta::fallo("Error de conexión: $curlError", 0, '', $xmlInterno);
+            return [0, '', "Error de conexión: $curlError"];
         }
 
         // El RNDC declara ISO-8859-1 pero normalmente responde en UTF-8.
@@ -142,11 +237,19 @@ final class RndcClient
             ? $respuesta
             : mb_convert_encoding($respuesta, 'UTF-8', 'ISO-8859-1');
 
-        if ($httpCode < 200 || $httpCode >= 300) {
-            return RndcRespuesta::fallo("HTTP $httpCode", $httpCode, $respuestaUtf8, $xmlInterno);
-        }
+        return [$httpCode, $respuestaUtf8, null];
+    }
 
-        return $this->parsearRespuesta($respuestaUtf8, $httpCode, $xmlInterno);
+    /** Endpoint de consultas (servidor plc, o el host forzado/ambiente). */
+    public function endpointConsultas(): string
+    {
+        if ($this->hostOverride !== '') {
+            return rtrim($this->hostOverride, '/') . self::PATH;
+        }
+        if ($this->ambiente !== 'produccion') {
+            return self::HOSTS['pruebas'] . self::PATH;
+        }
+        return self::HOSTS['consultas'] . self::PATH;
     }
 
     /**
@@ -180,6 +283,46 @@ final class RndcClient
                 $xml .= '    <' . $clave . '>' . self::escaparXml((string) $valor) . '</' . $clave . ">\n";
             }
             $xml .= "  </documento>\n";
+        }
+        $xml .= '</root>';
+        return $xml;
+    }
+
+    /**
+     * Construye el XML interno para una CONSULTA.
+     * <variables> es la lista (separada por comas) de campos a devolver;
+     * <documento> son los filtros exactos; <documentorango> los rangos.
+     *
+     * @param string[]                  $campos
+     * @param array<string,scalar|null> $filtro
+     * @param array<string,scalar|null> $rango
+     */
+    public function construirXmlConsulta(string $tipo, int $procesoid, array $campos, array $filtro, array $rango = []): string
+    {
+        $xml  = "<?xml version='1.0' encoding='ISO-8859-1'?>\n<root>\n";
+        $xml .= "  <acceso>\n";
+        $xml .= '    <username>' . self::escaparXml($this->username) . "</username>\n";
+        $xml .= '    <password>' . self::escaparXml($this->password) . "</password>\n";
+        $xml .= "  </acceso>\n";
+        $xml .= "  <solicitud>\n";
+        $xml .= '    <tipo>' . self::escaparXml($tipo) . "</tipo>\n";
+        $xml .= '    <procesoid>' . $procesoid . "</procesoid>\n";
+        $xml .= "  </solicitud>\n";
+        $xml .= '  <variables>' . self::escaparXml(implode(',', $campos)) . "</variables>\n";
+        $xml .= "  <documento>\n";
+        foreach ($filtro as $clave => $valor) {
+            if ($valor === null || $valor === '') {
+                continue;
+            }
+            $xml .= '    <' . $clave . '>' . self::escaparXml((string) $valor) . '</' . $clave . ">\n";
+        }
+        $xml .= "  </documento>\n";
+        if ($rango !== []) {
+            $xml .= "  <documentorango>\n";
+            foreach ($rango as $clave => $valor) {
+                $xml .= '    <' . $clave . '>' . self::escaparXml((string) $valor) . '</' . $clave . ">\n";
+            }
+            $xml .= "  </documentorango>\n";
         }
         $xml .= '</root>';
         return $xml;

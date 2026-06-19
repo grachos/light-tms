@@ -19,9 +19,20 @@ parámetro string `<Request>` con un **XML interno escapado**:
 </root>
 ```
 
-- `tipo` = `1` para **ingresar/expedir** información.
+- `tipo` = tipo de operación (ver tabla).
 - `procesoid` = número de proceso (ver abajo).
 - La respuesta trae `<ingresoid>` (éxito) o `<ErrorMSG>` / `<error>` (rechazo).
+
+### Tipos de operación (`<solicitud><tipo>`)
+
+| tipo | Operación | Constante en el cliente |
+|---|---|---|
+| 1 | Registrar información en procesos y maestros | `TIPO_INGRESAR` |
+| 2 | Consultar registros de maestros | `TIPO_CONSULTAR_MAESTRO` |
+| 3 | Consultar documentos/registros de un proceso | `TIPO_CONSULTAR_PROCESO` |
+| 4 | Consulta para la Policía | — |
+
+> Para consultar un manifiesto/remesa usa **tipo 3** con el `procesoid` del documento.
 
 **Headers:** `Content-Type: text/xml; charset=ISO-8859-1` y
 `SOAPAction: urn:BPMServicesIntf-IBPMServices#AtenderMensajeRNDC`.
@@ -35,14 +46,18 @@ Ruta del servicio: `/soap/IBPMServices`.
 
 | Servidor | Host:puerto | Procesos | Estado verificado (2026-06-18) |
 |---|---|---|---|
-| Pruebas | `rndc.mintransporte.gov.co:8080` | todos (ambiente prueba) | ❌ **no responde** |
+| Pruebas | `rndcpruebas.mintransporte.gov.co:8080` | todos (ambiente prueba) | (no probado) |
 | Expedir | `rndcws2.mintransporte.gov.co:8080` | **3 (Remesa), 4 (Manifiesto)** | ✅ responde |
-| Consultas | `plc.mintransporte.gov.co:8080` | 26, 27, 48, 55 | ✅ responde |
-| Otros | `rndcws.mintransporte.gov.co:8080` | 1, 2, 5..12, etc. | ✅ responde |
+| Consultas | `plc.mintransporte.gov.co:8080` | consultas | ✅ verificado (consulta real OK) |
+| Otros | `rndcws.mintransporte.gov.co:8080` | el resto | ✅ responde |
 
-> El servidor de **pruebas (`rndc`)** estaba caído en la verificación. Los de
-> producción responden. Para acceder con credenciales reales puede requerirse
-> **autorizar la IP** del servidor ante el Ministerio.
+> Las IP extranjeras están **bloqueadas** (salvo EE. UU.). Para acceder desde una IP
+> extranjera hay que solicitarlo al Grupo de Logística del Ministerio. La IP del
+> servidor Hostinger debe poder llegar a estos hosts.
+>
+> Además del ambiente programático hay **wstest** (sin programar):
+> `https://rndc.mintransporte.gov.co/wstest/default.aspx` (y default2/default3 para
+> apuntar a rndcws2 / plc).
 
 El cliente resuelve el endpoint automáticamente con `RNDC_AMBIENTE`
 (`pruebas` | `produccion`) y enruta por `procesoid`. Se puede forzar con
@@ -98,3 +113,25 @@ php tools/probar_rndc.php                  # muestra el XML, sin enviar
 php tools/probar_rndc.php --enviar         # envía (usa el .env)
 php tools/probar_rndc.php --enviar --host="http://rndcws2.mintransporte.gov.co:8080"
 ```
+
+## Consultas (tipo 3)
+
+```php
+$rndc = RndcClient::desdeConfig();
+$resp = $rndc->consultar(
+    4,                                                  // proceso 4 = Manifiesto
+    ['NUMMANIFIESTOCARGA','NUMPLACA','VALORFLETEPACTADOVIAJE'],  // campos a traer
+    ['NUMNITEMPRESATRANSPORTE' => $nit, 'NUMMANIFIESTOCARGA' => $num], // filtro <documento>
+);
+foreach ($resp->datos as $fila) {
+    echo $fila['numplaca'];
+}
+```
+
+- `<documento>` lleva los filtros exactos (sub-elementos).
+- `<documentorango>` (4º parámetro) lleva rangos con comillas simples,
+  p.ej. `['iniFECHAING' => "'2026/01/01'", 'finFECHAING' => "'2026/12/31'"]`.
+- `RndcRespuesta::$datos` es una lista de filas (una por `<documento>` del resultado).
+
+**Verificado** (2026-06-18): consulta del manifiesto `0102002560` devolvió placa
+`KSO581`, flete `2198000`, ingresoid `119855230`.

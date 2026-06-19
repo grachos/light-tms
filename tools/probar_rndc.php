@@ -21,6 +21,14 @@ if (PHP_SAPI !== 'cli') {
 
 $enviar = in_array('--enviar', $argv, true);
 
+// --manifiesto=NUM : consulta un manifiesto (tipo 3, proceso 4) y termina.
+$manifiesto = '';
+foreach ($argv as $arg) {
+    if (str_starts_with($arg, '--manifiesto=')) {
+        $manifiesto = substr($arg, 13);
+    }
+}
+
 // --host=URL : fuerza el host base (útil para probar contra un servidor concreto).
 $host = '';
 foreach ($argv as $arg) {
@@ -52,6 +60,31 @@ $variables = [
     'NOMENCLATURADIRECCION'   => 'CALLE 1 # 2-3',
     'CODMUNICIPIORNDC'        => '11001000',
 ];
+
+// Consulta de manifiesto (si se pidió).
+if ($manifiesto !== '') {
+    $nit = config()['rndc']['empresa'];
+    echo "==================== CONSULTA MANIFIESTO $manifiesto ============\n";
+    $r = $cliente->consultar(4, [
+        'INGRESOID', 'FECHAING', 'NUMMANIFIESTOCARGA', 'NUMIDTITULARMANIFIESTO',
+        'NUMPLACA', 'NUMIDCONDUCTOR', 'VALORFLETEPACTADOVIAJE',
+    ], [
+        'NUMNITEMPRESATRANSPORTE' => $nit,
+        'NUMMANIFIESTOCARGA'      => $manifiesto,
+    ]);
+    echo 'HTTP: ' . $r->httpCode . '  OK: ' . ($r->ok ? 'sí' : 'no') . "\n";
+    if ($r->error) {
+        echo 'ERROR: ' . $r->error . "\n";
+    }
+    echo 'Filas: ' . count($r->datos) . "\n";
+    foreach ($r->datos as $i => $fila) {
+        echo '--- fila ' . ($i + 1) . " ---\n";
+        foreach ($fila as $k => $v) {
+            echo "  $k = $v\n";
+        }
+    }
+    exit(0);
+}
 
 $xmlInterno = $cliente->construirXmlInterno(RndcClient::TIPO_INGRESAR, $procesoid, $variables);
 $sobre      = $cliente->construirSobreSoap($xmlInterno);
