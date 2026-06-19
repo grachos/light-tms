@@ -52,8 +52,9 @@ Los campos llevan en comentarios SQL su variable oficial del RNDC entre `[corche
 
 1. Copia `.env.example` a `.env` y completa los datos de la BD.
 2. Crea la base de datos e importa, en orden, los SQL de `sql/`:
-   `schema.sql` (documentos), `municipios.sql` (catálogo DIVIPOLA) y
-   `maestros.sql` (Tercero y Vehículo).
+   `schema.sql` (documentos), `municipios.sql` (catálogo DIVIPOLA),
+   `maestros.sql` (Tercero y Vehículo) y `catalogos.sql`
+   (empaque, carrocería, producto, errores RNDC).
 3. Sirve la carpeta `public/`:
    ```bash
    php -S localhost:8000 -t public
