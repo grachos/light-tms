@@ -11,6 +11,7 @@ require_once __DIR__ . '/../src/vista.php';
 require_once __DIR__ . '/../src/Solicitud/SolicitudRepo.php';
 require_once __DIR__ . '/../src/Maestro/MunicipioRepo.php';
 require_once __DIR__ . '/../src/Maestro/TerceroRepo.php';
+require_once __DIR__ . '/../src/Maestro/VehiculoRepo.php';
 
 $r = $_GET['r'] ?? 'inicio';
 
@@ -61,6 +62,43 @@ try {
                 header('Location: ' . ruta('terceros', ['ok' => 'Tercero registrado en RNDC (id ' . $resp->ingresoId . ').']));
             } else {
                 header('Location: ' . ruta('terceros', ['err' => 'RNDC: ' . $resp->error]));
+            }
+            break;
+
+        case 'vehiculos':
+            $vehiculos = (new VehiculoRepo())->listar();
+            layout_top('Vehículos', 'vehiculos');
+            require __DIR__ . '/../src/vistas/vehiculos.php';
+            layout_bottom();
+            break;
+
+        case 'vehiculo.nuevo':
+            layout_top('Nuevo vehículo', 'vehiculos');
+            require __DIR__ . '/../src/vistas/vehiculo_form.php';
+            layout_bottom();
+            break;
+
+        case 'vehiculo.crear':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                header('Location: ' . ruta('vehiculo.nuevo'));
+                break;
+            }
+            try {
+                (new VehiculoRepo())->crear($_POST);
+                header('Location: ' . ruta('vehiculos', ['ok' => 'Vehículo guardado.']));
+            } catch (Throwable $e) {
+                $msg = config()['app']['debug'] ? $e->getMessage() : 'No se pudo guardar el vehículo.';
+                header('Location: ' . ruta('vehiculo.nuevo', ['err' => $msg]));
+            }
+            break;
+
+        case 'vehiculo.registrar':
+            $id = (int) ($_GET['id'] ?? 0);
+            $resp = (new VehiculoRepo())->registrarEnRndc($id);
+            if ($resp->ok) {
+                header('Location: ' . ruta('vehiculos', ['ok' => 'Vehículo registrado en RNDC (id ' . $resp->ingresoId . ').']));
+            } else {
+                header('Location: ' . ruta('vehiculos', ['err' => 'RNDC: ' . $resp->error]));
             }
             break;
         case 'solicitudes':

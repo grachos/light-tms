@@ -66,9 +66,9 @@ CREATE TABLE IF NOT EXISTS vehiculo (
     ano_fabricacion     SMALLINT     NULL     COMMENT '[ANOFABRICACIONVEHICULOCARGA]',
     peso_vacio          INT          NULL     COMMENT '[PESOVEHICULOVACIO] kg',
 
-    -- Propietario y tenedor (obligatorios)
-    propietario_tipo_id VARCHAR(2)   NOT NULL COMMENT '[CODTIPOIDPROPIETARIO]',
-    propietario_num_id  VARCHAR(15)  NOT NULL COMMENT '[NUMIDPROPIETARIO]',
+    -- Tenedor (obligatorio). Propietario opcional: el RNDC lo hereda del RUNT.
+    propietario_tipo_id VARCHAR(2)   NULL     COMMENT '[CODTIPOIDPROPIETARIO]',
+    propietario_num_id  VARCHAR(15)  NULL     COMMENT '[NUMIDPROPIETARIO]',
     tenedor_tipo_id     VARCHAR(2)   NOT NULL COMMENT '[CODTIPOIDTENEDOR]',
     tenedor_num_id      VARCHAR(15)  NOT NULL COMMENT '[NUMIDTENEDOR]',
 

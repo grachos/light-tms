@@ -23,6 +23,7 @@ function layout_top(string $titulo, string $activo = ''): void
         'inicio'           => 'Inicio',
         'solicitudes'      => 'Solicitudes',
         'terceros'         => 'Terceros',
+        'vehiculos'        => 'Vehículos',
         'solicitud.nueva'  => '+ Nueva solicitud',
     ];
     ?>
