@@ -60,12 +60,16 @@ if (!function_exists('fichaCampos')) {
         <?php fichaCampos($remesa, [
             'num_remesa'           => 'Consecutivo remesa',
             'naturaleza_carga'     => 'Naturaleza carga',
+            'tipo_empaque'         => 'Tipo empaque',
+            'mercancia_codigo'     => 'Cód. mercancía',
             'descripcion_producto' => 'Producto',
             'cantidad_cargada'     => 'Cantidad',
             'municipio_cargue'     => 'Mun. cargue',
             'municipio_descargue'  => 'Mun. descargue',
             'remitente_num_id'     => 'Remitente',
             'destinatario_num_id'  => 'Destinatario',
+            'propietario_num_id'   => 'Propietario carga',
+            'fecha_cita_cargue'    => 'Cita cargue',
             'rndc_ingreso_id'      => 'Ingreso RNDC',
         ]); ?>
     </section>
@@ -73,16 +77,20 @@ if (!function_exists('fichaCampos')) {
     <section class="tarjeta">
         <h2>Manifiesto <span class="chip chip--rndc"><?= e($manifiesto['estado_rndc'] ?? '—') ?></span></h2>
         <?php fichaCampos($manifiesto, [
-            'num_manifiesto'      => 'Consecutivo manifiesto',
-            'fecha_expedicion'    => 'Fecha expedición',
-            'municipio_origen'    => 'Origen',
-            'municipio_destino'   => 'Destino',
-            'titular_num_id'      => 'Titular',
-            'placa_vehiculo'      => 'Placa',
-            'conductor_num_id'    => 'Conductor',
-            'valor_flete_pactado' => 'Flete pactado',
-            'valor_anticipo'      => 'Anticipo',
-            'rndc_ingreso_id'     => 'Ingreso RNDC',
+            'num_manifiesto'        => 'Consecutivo manifiesto',
+            'fecha_expedicion'      => 'Fecha expedición',
+            'municipio_origen'      => 'Origen',
+            'municipio_destino'     => 'Destino',
+            'titular_num_id'        => 'Titular',
+            'placa_vehiculo'        => 'Placa',
+            'conductor_num_id'      => 'Conductor',
+            'valor_flete_pactado'   => 'Flete pactado',
+            'valor_anticipo'        => 'Anticipo',
+            'retencion_ica'         => 'Retención ICA',
+            'municipio_pago_saldo'  => 'Mun. pago saldo',
+            'fecha_pago_saldo'      => 'Fecha pago saldo',
+            'nro_poliza'            => 'Nro. póliza',
+            'rndc_ingreso_id'       => 'Ingreso RNDC',
         ]); ?>
     </section>
 </div>

@@ -12,6 +12,7 @@ require_once __DIR__ . '/../src/Solicitud/SolicitudRepo.php';
 require_once __DIR__ . '/../src/Maestro/MunicipioRepo.php';
 require_once __DIR__ . '/../src/Maestro/TerceroRepo.php';
 require_once __DIR__ . '/../src/Maestro/VehiculoRepo.php';
+require_once __DIR__ . '/../src/Maestro/CatalogoRepo.php';
 
 $r = $_GET['r'] ?? 'inicio';
 
@@ -32,6 +33,11 @@ try {
         case 'vehiculos.buscar':
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode((new VehiculoRepo())->buscar((string) ($_GET['q'] ?? '')), JSON_UNESCAPED_UNICODE);
+            break;
+
+        case 'productos.buscar':
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode((new CatalogoRepo())->buscarProductos((string) ($_GET['q'] ?? '')), JSON_UNESCAPED_UNICODE);
             break;
 
         case 'terceros':
