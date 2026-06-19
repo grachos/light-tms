@@ -63,6 +63,25 @@ final class TerceroRepo
         return $filas;
     }
 
+    /**
+     * Actualiza un tercero existente.
+     *
+     * @param array<string,mixed> $datos
+     */
+    public function actualizar(int $id, array $datos): void
+    {
+        $fila = [];
+        foreach (self::CAMPOS as $c) {
+            $valor = $datos[$c] ?? null;
+            $fila[$c] = ($valor === '' ? null : $valor);
+        }
+        $fila['es_conductor'] = !empty($datos['es_conductor']) ? 1 : 0;
+
+        $sets = implode(', ', array_map(static fn ($c) => "$c = :$c", array_keys($fila)));
+        $fila['id'] = $id;
+        db()->prepare("UPDATE tercero SET $sets WHERE id = :id")->execute($fila);
+    }
+
     /** @return list<array<string,mixed>> */
     public function listar(int $limite = 200): array
     {

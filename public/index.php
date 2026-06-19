@@ -72,6 +72,37 @@ try {
             }
             break;
 
+        case 'tercero.editar':
+            $tercero = (new TerceroRepo())->obtener((int) ($_GET['id'] ?? 0));
+            if ($tercero === null) {
+                header('Location: ' . ruta('terceros', ['err' => 'Tercero no encontrado.']));
+                break;
+            }
+            $accion = ruta('tercero.actualizar', ['id' => (int) $tercero['id']]);
+            layout_top('Editar tercero', 'terceros');
+            require __DIR__ . '/../src/vistas/tercero_form.php';
+            layout_bottom();
+            break;
+
+        case 'tercero.actualizar':
+            $id = (int) ($_GET['id'] ?? 0);
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                header('Location: ' . ruta('tercero.editar', ['id' => $id]));
+                break;
+            }
+            if (empty($_POST['cod_municipio'])) {
+                header('Location: ' . ruta('tercero.editar', ['id' => $id, 'err' => 'Elige el municipio de la lista.']));
+                break;
+            }
+            try {
+                (new TerceroRepo())->actualizar($id, $_POST);
+                header('Location: ' . ruta('terceros', ['ok' => 'Tercero actualizado.']));
+            } catch (Throwable $e) {
+                $msg = config()['app']['debug'] ? $e->getMessage() : 'No se pudo actualizar.';
+                header('Location: ' . ruta('tercero.editar', ['id' => $id, 'err' => $msg]));
+            }
+            break;
+
         case 'tercero.registrar':
             $id = (int) ($_GET['id'] ?? 0);
             $resp = (new TerceroRepo())->registrarEnRndc($id);
@@ -110,6 +141,37 @@ try {
             } catch (Throwable $e) {
                 $msg = config()['app']['debug'] ? $e->getMessage() : 'No se pudo guardar el vehículo.';
                 header('Location: ' . ruta('vehiculo.nuevo', ['err' => $msg]));
+            }
+            break;
+
+        case 'vehiculo.editar':
+            $vehiculo = (new VehiculoRepo())->obtener((int) ($_GET['id'] ?? 0));
+            if ($vehiculo === null) {
+                header('Location: ' . ruta('vehiculos', ['err' => 'Vehículo no encontrado.']));
+                break;
+            }
+            $accion = ruta('vehiculo.actualizar', ['id' => (int) $vehiculo['id']]);
+            layout_top('Editar vehículo', 'vehiculos');
+            require __DIR__ . '/../src/vistas/vehiculo_form.php';
+            layout_bottom();
+            break;
+
+        case 'vehiculo.actualizar':
+            $id = (int) ($_GET['id'] ?? 0);
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                header('Location: ' . ruta('vehiculo.editar', ['id' => $id]));
+                break;
+            }
+            if (empty($_POST['tenedor_num_id'])) {
+                header('Location: ' . ruta('vehiculo.editar', ['id' => $id, 'err' => 'Elige el tenedor de la lista de terceros.']));
+                break;
+            }
+            try {
+                (new VehiculoRepo())->actualizar($id, $_POST);
+                header('Location: ' . ruta('vehiculos', ['ok' => 'Vehículo actualizado.']));
+            } catch (Throwable $e) {
+                $msg = config()['app']['debug'] ? $e->getMessage() : 'No se pudo actualizar.';
+                header('Location: ' . ruta('vehiculo.editar', ['id' => $id, 'err' => $msg]));
             }
             break;
 

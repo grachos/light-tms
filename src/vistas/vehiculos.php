@@ -31,10 +31,11 @@ declare(strict_types=1);
                     <td><?= e($v['tenedor_num_id'] ?? '—') ?></td>
                     <td><span class="chip chip--<?= e($v['estado_rndc']) ?>"><?= e($v['estado_rndc']) ?></span></td>
                     <td>
+                        <a href="<?= e(ruta('vehiculo.editar', ['id' => (int) $v['id']])) ?>">Editar</a>
                         <?php if ($v['estado_rndc'] !== 'registrado'): ?>
-                            <a href="<?= e(ruta('vehiculo.registrar', ['id' => (int) $v['id']])) ?>">Registrar en RNDC</a>
+                            &middot; <a href="<?= e(ruta('vehiculo.registrar', ['id' => (int) $v['id']])) ?>">Registrar en RNDC</a>
                         <?php else: ?>
-                            <span class="ayuda">id <?= e($v['rndc_ingreso_id'] ?? '') ?></span>
+                            &middot; <span class="ayuda">id <?= e($v['rndc_ingreso_id'] ?? '') ?></span>
                         <?php endif; ?>
                     </td>
                 </tr>

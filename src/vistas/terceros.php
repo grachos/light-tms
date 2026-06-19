@@ -34,10 +34,11 @@ declare(strict_types=1);
                     <td><?= ((int) $t['es_conductor'] === 1) ? 'Sí' : '—' ?></td>
                     <td><span class="chip chip--<?= e($t['estado_rndc']) ?>"><?= e($t['estado_rndc']) ?></span></td>
                     <td>
+                        <a href="<?= e(ruta('tercero.editar', ['id' => (int) $t['id']])) ?>">Editar</a>
                         <?php if ($t['estado_rndc'] !== 'registrado'): ?>
-                            <a href="<?= e(ruta('tercero.registrar', ['id' => (int) $t['id']])) ?>">Registrar en RNDC</a>
+                            &middot; <a href="<?= e(ruta('tercero.registrar', ['id' => (int) $t['id']])) ?>">Registrar en RNDC</a>
                         <?php else: ?>
-                            <span class="ayuda">id <?= e($t['rndc_ingreso_id'] ?? '') ?></span>
+                            &middot; <span class="ayuda">id <?= e($t['rndc_ingreso_id'] ?? '') ?></span>
                         <?php endif; ?>
                     </td>
                 </tr>
