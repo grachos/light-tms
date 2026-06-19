@@ -42,6 +42,28 @@ final class VehiculoRepo
         return (int) db()->lastInsertId();
     }
 
+    /**
+     * Busca vehículos por placa para autocompletado.
+     *
+     * @return list<array{id:int,placa:string,label:string}>
+     */
+    public function buscar(string $q, int $limite = 15): array
+    {
+        $q = trim($q);
+        if ($q === '') {
+            return [];
+        }
+        $stmt = db()->prepare(
+            'SELECT id, placa, marca FROM vehiculo WHERE placa LIKE ? ORDER BY placa LIMIT ' . (int) $limite
+        );
+        $stmt->execute(['%' . strtoupper($q) . '%']);
+        $filas = $stmt->fetchAll();
+        foreach ($filas as &$f) {
+            $f['label'] = $f['placa'] . (!empty($f['marca']) ? ' — ' . $f['marca'] : '');
+        }
+        return $filas;
+    }
+
     /** @return list<array<string,mixed>> */
     public function listar(int $limite = 200): array
     {

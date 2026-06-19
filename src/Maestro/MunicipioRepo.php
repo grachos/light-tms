@@ -22,7 +22,7 @@ final class MunicipioRepo
         }
         $like = '%' . $q . '%';
         $stmt = db()->prepare(
-            'SELECT codigo_rndc, nombre_completo
+            'SELECT codigo_rndc, nombre_completo, nombre_completo AS label
              FROM municipio
              WHERE nombre LIKE ? OR nombre_completo LIKE ? OR codigo_rndc LIKE ?
              ORDER BY (nombre LIKE ?) DESC, nombre

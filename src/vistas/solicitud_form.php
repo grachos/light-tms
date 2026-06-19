@@ -51,11 +51,19 @@ if (!function_exists('selectTipoId')) {
     <fieldset>
         <legend>Ruta</legend>
         <div class="grid">
-            <label>Municipio origen (DIVIPOLA)
-                <input type="text" name="municipio_origen" maxlength="8" placeholder="76001000">
+            <label class="ancho-total">Municipio origen
+                <div class="autocompletar" data-ac="municipios">
+                    <input type="text" class="ac-texto" autocomplete="off" placeholder="Escribe y elige…">
+                    <ul class="ac-lista"></ul>
+                    <input type="hidden" name="municipio_origen" data-ac-field="codigo_rndc">
+                </div>
             </label>
-            <label>Municipio destino (DIVIPOLA)
-                <input type="text" name="municipio_destino" maxlength="8" placeholder="11001000">
+            <label class="ancho-total">Municipio destino
+                <div class="autocompletar" data-ac="municipios">
+                    <input type="text" class="ac-texto" autocomplete="off" placeholder="Escribe y elige…">
+                    <ul class="ac-lista"></ul>
+                    <input type="hidden" name="municipio_destino" data-ac-field="codigo_rndc">
+                </div>
             </label>
         </div>
     </fieldset>
@@ -69,32 +77,45 @@ if (!function_exists('selectTipoId')) {
             <label>NIT empresa transportadora
                 <input type="text" name="empresa_num_id" maxlength="20" value="<?= e(config()['rndc']['empresa']) ?>">
             </label>
-            <label>Placa vehículo
-                <input type="text" name="placa_vehiculo" maxlength="10" placeholder="ABC123">
+            <label class="ancho-total">Vehículo (placa)
+                <div class="autocompletar" data-ac="vehiculos">
+                    <input type="text" class="ac-texto" autocomplete="off" placeholder="Buscar placa…">
+                    <ul class="ac-lista"></ul>
+                    <input type="hidden" name="placa_vehiculo" data-ac-field="placa">
+                </div>
             </label>
-            <label>Tipo id. conductor
-                <?= selectTipoId('conductor_tipo_id', $tiposId, 'C') ?>
-            </label>
-            <label>Número id. conductor
-                <input type="text" name="conductor_num_id" maxlength="20">
+            <label class="ancho-total">Conductor
+                <div class="autocompletar" data-ac="terceros" data-ac-params="solo_conductor=1">
+                    <input type="text" class="ac-texto" autocomplete="off" placeholder="Buscar conductor…">
+                    <ul class="ac-lista"></ul>
+                    <input type="hidden" name="conductor_tipo_id" data-ac-field="tipo_id">
+                    <input type="hidden" name="conductor_num_id" data-ac-field="num_id">
+                </div>
             </label>
         </div>
+        <p class="ayuda">¿Falta el vehículo o el conductor? Créalos en
+           <a href="<?= e(ruta('vehiculo.nuevo')) ?>" target="_blank">Vehículos</a> /
+           <a href="<?= e(ruta('tercero.nuevo')) ?>" target="_blank">Terceros</a>.</p>
     </fieldset>
 
     <fieldset>
         <legend>Remitente y destinatario</legend>
         <div class="grid">
-            <label>Tipo id. remitente
-                <?= selectTipoId('remitente_tipo_id', $tiposId, 'N') ?>
+            <label class="ancho-total">Remitente
+                <div class="autocompletar" data-ac="terceros">
+                    <input type="text" class="ac-texto" autocomplete="off" placeholder="Buscar tercero…">
+                    <ul class="ac-lista"></ul>
+                    <input type="hidden" name="remitente_tipo_id" data-ac-field="tipo_id">
+                    <input type="hidden" name="remitente_num_id" data-ac-field="num_id">
+                </div>
             </label>
-            <label>Número id. remitente
-                <input type="text" name="remitente_num_id" maxlength="20">
-            </label>
-            <label>Tipo id. destinatario
-                <?= selectTipoId('destinatario_tipo_id', $tiposId, 'N') ?>
-            </label>
-            <label>Número id. destinatario
-                <input type="text" name="destinatario_num_id" maxlength="20">
+            <label class="ancho-total">Destinatario
+                <div class="autocompletar" data-ac="terceros">
+                    <input type="text" class="ac-texto" autocomplete="off" placeholder="Buscar tercero…">
+                    <ul class="ac-lista"></ul>
+                    <input type="hidden" name="destinatario_tipo_id" data-ac-field="tipo_id">
+                    <input type="hidden" name="destinatario_num_id" data-ac-field="num_id">
+                </div>
             </label>
         </div>
     </fieldset>

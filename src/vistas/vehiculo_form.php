@@ -4,14 +4,6 @@
  * Marca/modelo/propietario son opcionales: el RNDC los hereda del RUNT por placa.
  */
 declare(strict_types=1);
-
-$tiposId = [
-    'C' => 'C - Cédula de ciudadanía',
-    'N' => 'N - NIT',
-    'E' => 'E - Cédula de extranjería',
-    'T' => 'T - Tarjeta de identidad',
-    'P' => 'P - Pasaporte',
-];
 ?>
 <h1>Nuevo Vehículo</h1>
 <p class="ayuda">Lo mínimo es placa, configuración, peso vacío y tenedor.
@@ -74,32 +66,28 @@ $tiposId = [
     </fieldset>
 
     <fieldset>
-        <legend>Tenedor (obligatorio)</legend>
-        <div class="grid">
-            <label>Tipo id. tenedor *
-                <select name="tenedor_tipo_id" required>
-                    <?php foreach ($tiposId as $v => $t): ?><option value="<?= e($v) ?>"><?= e($t) ?></option><?php endforeach; ?>
-                </select>
-            </label>
-            <label>Número id. tenedor *
-                <input type="text" name="tenedor_num_id" maxlength="15" required>
-            </label>
-        </div>
+        <legend>Tenedor (obligatorio — es un tercero)</legend>
+        <label class="ancho-total">Buscar tercero (tenedor) *
+            <div class="autocompletar" data-ac="terceros">
+                <input type="text" class="ac-texto" autocomplete="off" placeholder="Nombre o identificación…" required>
+                <ul class="ac-lista"></ul>
+                <input type="hidden" name="tenedor_tipo_id" data-ac-field="tipo_id">
+                <input type="hidden" name="tenedor_num_id" data-ac-field="num_id">
+            </div>
+        </label>
+        <p class="ayuda">¿No existe? <a href="<?= e(ruta('tercero.nuevo')) ?>" target="_blank">Crear tercero</a>.</p>
     </fieldset>
 
     <fieldset>
-        <legend>Propietario (opcional — lo hereda el RNDC)</legend>
-        <div class="grid">
-            <label>Tipo id. propietario
-                <select name="propietario_tipo_id">
-                    <option value="">—</option>
-                    <?php foreach ($tiposId as $v => $t): ?><option value="<?= e($v) ?>"><?= e($t) ?></option><?php endforeach; ?>
-                </select>
-            </label>
-            <label>Número id. propietario
-                <input type="text" name="propietario_num_id" maxlength="15">
-            </label>
-        </div>
+        <legend>Propietario (opcional — es un tercero; si se omite, lo hereda el RNDC)</legend>
+        <label class="ancho-total">Buscar tercero (propietario)
+            <div class="autocompletar" data-ac="terceros">
+                <input type="text" class="ac-texto" autocomplete="off" placeholder="Nombre o identificación…">
+                <ul class="ac-lista"></ul>
+                <input type="hidden" name="propietario_tipo_id" data-ac-field="tipo_id">
+                <input type="hidden" name="propietario_num_id" data-ac-field="num_id">
+            </div>
+        </label>
     </fieldset>
 
     <div class="acciones">

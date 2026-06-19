@@ -20,8 +20,18 @@ try {
 
         case 'municipios.buscar':
             header('Content-Type: application/json; charset=utf-8');
-            $repo = new MunicipioRepo();
-            echo json_encode($repo->buscar((string) ($_GET['q'] ?? '')), JSON_UNESCAPED_UNICODE);
+            echo json_encode((new MunicipioRepo())->buscar((string) ($_GET['q'] ?? '')), JSON_UNESCAPED_UNICODE);
+            break;
+
+        case 'terceros.buscar':
+            header('Content-Type: application/json; charset=utf-8');
+            $solo = !empty($_GET['solo_conductor']);
+            echo json_encode((new TerceroRepo())->buscar((string) ($_GET['q'] ?? ''), $solo), JSON_UNESCAPED_UNICODE);
+            break;
+
+        case 'vehiculos.buscar':
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode((new VehiculoRepo())->buscar((string) ($_GET['q'] ?? '')), JSON_UNESCAPED_UNICODE);
             break;
 
         case 'terceros':
@@ -81,6 +91,10 @@ try {
         case 'vehiculo.crear':
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 header('Location: ' . ruta('vehiculo.nuevo'));
+                break;
+            }
+            if (empty($_POST['tenedor_num_id'])) {
+                header('Location: ' . ruta('vehiculo.nuevo', ['err' => 'Elige el tenedor de la lista de terceros.']));
                 break;
             }
             try {

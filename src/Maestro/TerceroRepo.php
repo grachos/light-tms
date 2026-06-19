@@ -37,6 +37,32 @@ final class TerceroRepo
         return (int) db()->lastInsertId();
     }
 
+    /**
+     * Busca terceros para autocompletado.
+     *
+     * @return list<array{id:int,tipo_id:string,num_id:string,nombre:string,label:string}>
+     */
+    public function buscar(string $q, bool $soloConductor = false, int $limite = 15): array
+    {
+        $q = trim($q);
+        if ($q === '') {
+            return [];
+        }
+        $like = '%' . $q . '%';
+        $sql  = 'SELECT id, tipo_id, num_id, nombre FROM tercero WHERE (nombre LIKE ? OR num_id LIKE ?)';
+        if ($soloConductor) {
+            $sql .= ' AND es_conductor = 1';
+        }
+        $sql .= ' ORDER BY nombre LIMIT ' . (int) $limite;
+        $stmt = db()->prepare($sql);
+        $stmt->execute([$like, $like]);
+        $filas = $stmt->fetchAll();
+        foreach ($filas as &$f) {
+            $f['label'] = $f['nombre'] . ' (' . $f['tipo_id'] . ' ' . $f['num_id'] . ')';
+        }
+        return $filas;
+    }
+
     /** @return list<array<string,mixed>> */
     public function listar(int $limite = 200): array
     {

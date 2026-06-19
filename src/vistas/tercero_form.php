@@ -57,10 +57,10 @@ $tiposId = [
         <legend>Ubicación</legend>
         <div class="grid">
             <label class="ancho-total">Municipio *
-                <div class="autocompletar" data-municipio>
-                    <input type="text" class="mun-texto" name="municipio_nombre" autocomplete="off" placeholder="Escribe y elige…" required>
-                    <input type="hidden" name="cod_municipio" class="mun-codigo">
-                    <ul class="mun-lista"></ul>
+                <div class="autocompletar" data-ac="municipios">
+                    <input type="text" class="ac-texto" name="municipio_nombre" autocomplete="off" placeholder="Escribe y elige…" required>
+                    <ul class="ac-lista"></ul>
+                    <input type="hidden" name="cod_municipio" data-ac-field="codigo_rndc">
                 </div>
             </label>
             <label class="ancho-total">Dirección *

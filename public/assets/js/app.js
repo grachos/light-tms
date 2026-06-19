@@ -3,16 +3,31 @@
 (function () {
     'use strict';
 
-    /* ---------- Autocompletado de municipio (DIVIPOLA) ---------- */
-    function initMunicipios() {
-        document.querySelectorAll('[data-municipio]').forEach(function (caja) {
-            const texto  = caja.querySelector('.mun-texto');
-            const codigo = caja.querySelector('.mun-codigo');
-            const lista  = caja.querySelector('.mun-lista');
+    /* ---------- Autocompletado genérico (municipios, terceros, vehículos) ----------
+       Uso en HTML:
+         <div class="autocompletar" data-ac="terceros" data-ac-params="solo_conductor=1">
+           <input class="ac-texto" ...>
+           <ul class="ac-lista"></ul>
+           <input type="hidden" name="..." data-ac-field="tipo_id">
+           <input type="hidden" name="..." data-ac-field="num_id">
+         </div>
+       El endpoint ?r=<ac>.buscar&q=... devuelve items con 'label' + los campos
+       que se copian a los hidden según data-ac-field.                              */
+    function initAutocomplete() {
+        document.querySelectorAll('[data-ac]').forEach(function (caja) {
+            const endpoint = caja.getAttribute('data-ac');
+            const extra    = caja.getAttribute('data-ac-params') || '';
+            const texto    = caja.querySelector('.ac-texto');
+            const lista    = caja.querySelector('.ac-lista');
+            const hiddens  = caja.querySelectorAll('[data-ac-field]');
             let timer = null;
 
+            function limpiarHidden() {
+                hiddens.forEach(function (h) { h.value = ''; });
+            }
+
             texto.addEventListener('input', function () {
-                codigo.value = ''; // se invalida hasta elegir de la lista
+                limpiarHidden(); // inválido hasta elegir de la lista
                 const q = texto.value.trim();
                 clearTimeout(timer);
                 if (q.length < 2) { lista.innerHTML = ''; return; }
@@ -20,26 +35,28 @@
             });
 
             texto.addEventListener('blur', function () {
-                // pequeño retardo para permitir el click en la opción
                 setTimeout(function () { lista.innerHTML = ''; }, 180);
             });
 
             function buscar(q) {
-                fetch('?r=municipios.buscar&q=' + encodeURIComponent(q))
+                const url = '?r=' + endpoint + '.buscar&q=' + encodeURIComponent(q) + (extra ? '&' + extra : '');
+                fetch(url)
                     .then(function (r) { return r.json(); })
-                    .then(function (items) { pintar(items); })
+                    .then(pintar)
                     .catch(function () { lista.innerHTML = ''; });
             }
 
             function pintar(items) {
                 lista.innerHTML = '';
-                items.forEach(function (m) {
+                items.forEach(function (it) {
                     const li = document.createElement('li');
-                    li.textContent = m.nombre_completo + '  (' + m.codigo_rndc + ')';
+                    li.textContent = it.label;
                     li.addEventListener('mousedown', function (e) {
                         e.preventDefault();
-                        texto.value = m.nombre_completo;
-                        codigo.value = m.codigo_rndc;
+                        texto.value = it.label;
+                        hiddens.forEach(function (h) {
+                            h.value = it[h.getAttribute('data-ac-field')] || '';
+                        });
                         lista.innerHTML = '';
                     });
                     lista.appendChild(li);
@@ -122,7 +139,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        initMunicipios();
+        initAutocomplete();
         initMapa();
     });
 })();
