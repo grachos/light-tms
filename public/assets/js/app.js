@@ -127,6 +127,29 @@
             });
         }
 
+        // Pegar enlace de Google Maps (o "lat,lng") y extraer coordenadas
+        function extraerCoords(s) {
+            if (!s) { return null; }
+            s = s.trim();
+            let m;
+            m = s.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);            if (m) { return [parseFloat(m[1]), parseFloat(m[2])]; }
+            m = s.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);                if (m) { return [parseFloat(m[1]), parseFloat(m[2])]; }
+            m = s.match(/[?&](?:q|query|ll|center)=(-?\d+\.\d+),(-?\d+\.\d+)/); if (m) { return [parseFloat(m[1]), parseFloat(m[2])]; }
+            m = s.match(/^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/);         if (m) { return [parseFloat(m[1]), parseFloat(m[2])]; }
+            return null;
+        }
+        const pegarBtn = document.getElementById('mapa-pegar-btn');
+        const pegarInp = document.getElementById('mapa-pegar');
+        if (pegarBtn && pegarInp) {
+            const usar = function () {
+                const c = extraerCoords(pegarInp.value);
+                if (c) { map.setView(c, 16); fijar(c[0], c[1]); pegarInp.value = ''; }
+                else { alert('No pude leer coordenadas. Pega un enlace de Google Maps con coordenadas (que contenga @lat,lng) o escribe "lat,lng".'); }
+            };
+            pegarBtn.addEventListener('click', usar);
+            pegarInp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); usar(); } });
+        }
+
         // Enlace "abrir en Google Maps"
         const gmap = document.getElementById('abrir-google-maps');
         if (gmap) {

@@ -91,6 +91,10 @@ $tiposId = [
             <button type="button" id="mapa-buscar-btn" class="btn">Buscar</button>
             <a href="#" id="abrir-google-maps" class="btn">Abrir en Google Maps</a>
         </div>
+        <div class="mapa-barra">
+            <input type="text" id="mapa-pegar" placeholder="Pega aquí un enlace de Google Maps (con @lat,lng) o escribe lat,lng">
+            <button type="button" id="mapa-pegar-btn" class="btn">Usar enlace</button>
+        </div>
         <div id="mapa"></div>
         <p class="ayuda">Haz clic en el mapa o arrastra el marcador para fijar la ubicación.</p>
         <div class="grid">
