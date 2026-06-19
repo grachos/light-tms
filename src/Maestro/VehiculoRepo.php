@@ -15,9 +15,8 @@ final class VehiculoRepo
 {
     private const CAMPOS = [
         'placa', 'cod_configuracion', 'cod_marca', 'marca', 'ano_fabricacion', 'peso_vacio',
+        'remolque_placa',
         'propietario_tipo_id', 'propietario_num_id', 'tenedor_tipo_id', 'tenedor_num_id',
-        'num_ejes', 'cod_carroceria', 'cod_combustible', 'capacidad',
-        'num_chasis', 'num_soat', 'venc_soat',
     ];
 
     /**
@@ -119,13 +118,6 @@ final class VehiculoRepo
             'MARCAVEHICULOCARGA'          => $v['marca'],
             'ANOFABRICACIONVEHICULOCARGA' => $v['ano_fabricacion'],
             'PESOVEHICULOVACIO'           => $v['peso_vacio'],
-            'NUMEJES'                     => $v['num_ejes'],
-            'CODTIPOCARROCERIA'           => $v['cod_carroceria'],
-            'CODTIPOCOMBUSTIBLE'          => $v['cod_combustible'],
-            'CAPACIDADUNIDADCARGA'        => $v['capacidad'],
-            'NUMCHASIS'                   => $v['num_chasis'],
-            'NUMSEGUROSOAT'               => $v['num_soat'],
-            'FECHAVENCIMIENTOSOAT'        => self::fechaRndc($v['venc_soat']),
             'CODTIPOIDPROPIETARIO'        => $v['propietario_tipo_id'],
             'NUMIDPROPIETARIO'            => $v['propietario_num_id'],
             'CODTIPOIDTENEDOR'            => $v['tenedor_tipo_id'],
@@ -143,14 +135,5 @@ final class VehiculoRepo
             ]);
 
         return $resp;
-    }
-
-    private static function fechaRndc(?string $fecha): ?string
-    {
-        if (empty($fecha)) {
-            return null;
-        }
-        $ts = strtotime($fecha);
-        return $ts ? date('d/m/Y', $ts) : $fecha;
     }
 }

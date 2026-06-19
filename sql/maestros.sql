@@ -72,14 +72,8 @@ CREATE TABLE IF NOT EXISTS vehiculo (
     tenedor_tipo_id     VARCHAR(2)   NOT NULL COMMENT '[CODTIPOIDTENEDOR]',
     tenedor_num_id      VARCHAR(15)  NOT NULL COMMENT '[NUMIDTENEDOR]',
 
-    -- Opcionales frecuentes
-    num_ejes            TINYINT      NULL     COMMENT '[NUMEJES]',
-    cod_carroceria      VARCHAR(3)   NULL     COMMENT '[CODTIPOCARROCERIA]',
-    cod_combustible     VARCHAR(2)   NULL     COMMENT '[CODTIPOCOMBUSTIBLE]',
-    capacidad           INT          NULL     COMMENT '[CAPACIDADUNIDADCARGA]',
-    num_chasis          VARCHAR(50)  NULL     COMMENT '[NUMCHASIS]',
-    num_soat            VARCHAR(15)  NULL     COMMENT '[NUMSEGUROSOAT]',
-    venc_soat           DATE         NULL     COMMENT '[FECHAVENCIMIENTOSOAT]',
+    -- Remolque (otro vehículo)
+    remolque_placa      VARCHAR(6)   NULL     COMMENT 'Placa remolque [NUMPLACAREMOLQUE]',
 
     -- Resultado RNDC
     rndc_ingreso_id     VARCHAR(40)  NULL,
