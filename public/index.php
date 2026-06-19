@@ -13,6 +13,7 @@ require_once __DIR__ . '/../src/Maestro/MunicipioRepo.php';
 require_once __DIR__ . '/../src/Maestro/TerceroRepo.php';
 require_once __DIR__ . '/../src/Maestro/VehiculoRepo.php';
 require_once __DIR__ . '/../src/Maestro/CatalogoRepo.php';
+require_once __DIR__ . '/../src/Maestro/EmpresaRepo.php';
 
 $r = $_GET['r'] ?? 'inicio';
 
@@ -170,6 +171,20 @@ try {
             layout_top('Solicitud #' . $id, 'solicitudes');
             require __DIR__ . '/../src/vistas/solicitud_detalle.php';
             layout_bottom();
+            break;
+
+        case 'empresa':
+            $empresa = (new EmpresaRepo())->obtener();
+            layout_top('Empresa', 'empresa');
+            require __DIR__ . '/../src/vistas/empresa_form.php';
+            layout_bottom();
+            break;
+
+        case 'empresa.guardar':
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                (new EmpresaRepo())->guardar($_POST);
+            }
+            header('Location: ' . ruta('empresa', ['ok' => 'Datos de la empresa guardados.']));
             break;
 
         case 'inicio':

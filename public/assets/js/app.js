@@ -161,8 +161,29 @@
         }
     }
 
+    /* ---------- Cálculo de retenciones (Solicitud) ---------- */
+    function initCalculos() {
+        const flete   = document.getElementById('valor_flete');
+        const pIca    = document.getElementById('porcentaje_ica');
+        const rIca    = document.getElementById('retencion_ica');
+        const rFuente = document.getElementById('retencion_fuente');
+        const fopat   = document.getElementById('fopat');
+        if (!flete || !rFuente) { return; }
+        function calc() {
+            const f = parseFloat(flete.value) || 0;
+            const p = parseFloat(pIca ? pIca.value : 0) || 0;
+            if (rIca)   { rIca.value   = (f * p / 100).toFixed(2); }
+            rFuente.value = (f * 0.01).toFixed(2);
+            if (fopat)  { fopat.value  = (f * 0.001).toFixed(2); }
+        }
+        flete.addEventListener('input', calc);
+        if (pIca) { pIca.addEventListener('input', calc); }
+        calc();
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         initAutocomplete();
         initMapa();
+        initCalculos();
     });
 })();

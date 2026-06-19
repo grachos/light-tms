@@ -1,19 +1,27 @@
 <?php
 /**
- * Vista: formulario de nueva Solicitud de Servicio (replanteado).
- * Captura todo lo necesario para sembrar una Remesa y un Manifiesto válidos.
+ * Vista: formulario de Solicitud de Servicio (etapa inicial).
+ * El vehículo, conductor, propietario de la carga y los datos de cargue/
+ * descargue se completan al confirmar el manifiesto (Fase 4).
  */
 declare(strict_types=1);
 
-$tiposId = [
-    'C' => 'C - Cédula', 'N' => 'N - NIT', 'E' => 'E - C. extranjería',
-    'T' => 'T - T. identidad', 'P' => 'P - Pasaporte',
-];
-$responsables = ['E' => 'E - Empresa', 'R' => 'R - Remitente', 'D' => 'D - Destinatario'];
 $empaques = (new CatalogoRepo())->empaques();
 
+$operaciones  = ['G' => 'General', 'P' => 'Paqueteo', 'C' => 'Contenedor Cargado', 'V' => 'Contenedor Vacío'];
+$naturalezas  = [
+    '1' => 'Carga normal', '2' => 'Carga peligrosa', '3' => 'Carga extradimensionada',
+    '4' => 'Carga extrapesada', '5' => 'Desechos peligrosos', '6' => 'Semovientes', '7' => 'Refrigerada',
+];
+$unidades     = ['1' => 'Kilogramos', '2' => 'Galones'];
+$tiposFlete   = [
+    'G' => 'General', 'M' => 'Multiparada', 'W' => 'Viaje Vacío', 'D' => 'Varios Viajes en el Día',
+    'I' => 'Viaje de Ida y Regreso', 'U' => 'Viaje Municipal o Urbano', 'V' => 'Varios Viajes Urbanos en el día',
+];
+$tiposPactado = ['V' => 'Por Viaje', 'K' => 'Por Kilogramo', 'G' => 'Por Galón'];
+
 if (!function_exists('selOpc')) {
-    function selOpc(string $name, array $opciones, string $def = '', bool $conVacio = false): string
+    function selOpc(string $name, array $opciones, string $def = '', bool $conVacio = true): string
     {
         $h = '<select name="' . e($name) . '">';
         if ($conVacio) { $h .= '<option value="">—</option>'; }
@@ -24,7 +32,6 @@ if (!function_exists('selOpc')) {
     }
 }
 if (!function_exists('acTercero')) {
-    // Picker de tercero: llena dos hidden (tipo/num). $params p.ej. 'solo_conductor=1'
     function acTercero(string $tipoName, string $numName, string $ph = 'Buscar tercero…', string $params = ''): string
     {
         $p = $params !== '' ? ' data-ac-params="' . e($params) . '"' : '';
@@ -48,8 +55,8 @@ if (!function_exists('acMunicipio')) {
 }
 ?>
 <h1>Nueva Solicitud de Servicio</h1>
-<p class="ayuda">Se captura una vez y genera automáticamente el <strong>Manifiesto</strong> y la
-   <strong>Remesa</strong>. Las partes, el vehículo y los municipios se eligen de los maestros.</p>
+<p class="ayuda">Etapa inicial. Genera el <strong>Manifiesto</strong> y la <strong>Remesa</strong>.
+   El vehículo, conductor y datos de cargue/descargue se completan al confirmar el despacho.</p>
 
 <?php flash(); ?>
 
@@ -60,9 +67,8 @@ if (!function_exists('acMunicipio')) {
         <div class="grid">
             <label>Consecutivo <input type="text" name="consecutivo" maxlength="30" placeholder="SS-0001"></label>
             <label>Fecha <input type="date" name="fecha_solicitud" value="<?= e(date('Y-m-d')) ?>"></label>
-            <label>Operación de transporte <input type="text" name="operacion_transporte" maxlength="2" placeholder="G"></label>
-            <label>Tipo de viaje <?= selOpc('tipo_viaje', ['NACIONAL' => 'Nacional', 'URBANO' => 'Urbano'], 'NACIONAL') ?></label>
-            <label>¿Sube al RNDC? <?= selOpc('sube_rndc', ['1' => 'Sí', '0' => 'No'], '1') ?></label>
+            <label>Operación de transporte <?= selOpc('operacion_transporte', $operaciones, 'G') ?></label>
+            <label>Tipo de viaje <?= selOpc('tipo_viaje', ['NACIONAL' => 'Nacional', 'URBANO' => 'Urbano'], 'NACIONAL', false) ?></label>
             <label class="ancho-total">Observaciones <textarea name="observaciones" rows="2" maxlength="200"></textarea></label>
         </div>
     </fieldset>
@@ -70,24 +76,11 @@ if (!function_exists('acMunicipio')) {
     <fieldset>
         <legend>2. Partes</legend>
         <div class="grid">
-            <label>Tipo id. empresa <?= selOpc('empresa_tipo_id', $tiposId, 'N') ?></label>
-            <label>NIT empresa <input type="text" name="empresa_num_id" maxlength="20" value="<?= e(config()['rndc']['empresa']) ?>"></label>
             <label class="ancho-total">Remitente <?= acTercero('remitente_tipo_id', 'remitente_num_id') ?></label>
             <label class="ancho-total">Destinatario <?= acTercero('destinatario_tipo_id', 'destinatario_num_id') ?></label>
-            <label class="ancho-total">Propietario de la carga <?= acTercero('propietario_carga_tipo_id', 'propietario_carga_num_id') ?></label>
-            <label class="ancho-total">Titular del manifiesto (propietario/tenedor del vehículo) <?= acTercero('titular_tipo_id', 'titular_num_id') ?></label>
-            <label class="ancho-total">Conductor <?= acTercero('conductor_tipo_id', 'conductor_num_id', 'Buscar conductor…', 'solo_conductor=1') ?></label>
-            <label class="ancho-total">Vehículo (placa)
-                <div class="autocompletar" data-ac="vehiculos">
-                    <input type="text" class="ac-texto" autocomplete="off" placeholder="Buscar placa…">
-                    <ul class="ac-lista"></ul>
-                    <input type="hidden" name="placa_vehiculo" data-ac-field="placa">
-                </div>
-            </label>
+            <label class="ancho-total">Titular del manifiesto <?= acTercero('titular_tipo_id', 'titular_num_id') ?></label>
         </div>
-        <p class="ayuda">¿Falta alguien o el vehículo? Créalos en
-           <a href="<?= e(ruta('terceros')) ?>" target="_blank">Terceros</a> /
-           <a href="<?= e(ruta('vehiculos')) ?>" target="_blank">Vehículos</a>.</p>
+        <p class="ayuda">¿Falta alguien? Créalo en <a href="<?= e(ruta('terceros')) ?>" target="_blank">Terceros</a>.</p>
     </fieldset>
 
     <fieldset>
@@ -102,7 +95,7 @@ if (!function_exists('acMunicipio')) {
     <fieldset>
         <legend>4. Carga</legend>
         <div class="grid">
-            <label>Naturaleza de la carga <input type="text" name="naturaleza_carga" maxlength="2" placeholder="1"></label>
+            <label>Naturaleza de la carga <?= selOpc('naturaleza_carga', $naturalezas, '1') ?></label>
             <label>Tipo de empaque
                 <select name="tipo_empaque">
                     <option value="">—</option>
@@ -113,46 +106,34 @@ if (!function_exists('acMunicipio')) {
             </label>
             <label class="ancho-total">Producto / mercancía (catálogo o código libre)
                 <div class="autocompletar" data-ac="productos">
-                    <input type="text" class="ac-texto" autocomplete="off" placeholder="Buscar producto en el catálogo…">
+                    <input type="text" class="ac-texto" autocomplete="off" placeholder="Buscar producto…">
                     <ul class="ac-lista"></ul>
                     <input type="text" name="mercancia_codigo" data-ac-field="codigo" maxlength="10" placeholder="Código (autollenado o manual)">
                 </div>
             </label>
             <label class="ancho-total">Descripción del producto <input type="text" name="descripcion_producto" maxlength="250"></label>
             <label>Cantidad cargada <input type="number" step="0.001" name="cantidad_cargada"></label>
-            <label>Unidad de medida <input type="text" name="unidad_medida" maxlength="2" placeholder="1"></label>
+            <label>Unidad de medida <?= selOpc('unidad_medida', $unidades, '1') ?></label>
             <label>Peso (kg) <input type="number" step="0.001" name="peso"></label>
             <label>Valor de la mercancía <input type="number" step="0.01" name="valor_mercancia"></label>
         </div>
     </fieldset>
 
     <fieldset>
-        <legend>5. Cargue / Descargue</legend>
+        <legend>5. Valores y manifiesto</legend>
         <div class="grid">
-            <label>Fecha cita cargue <input type="date" name="fecha_cita_cargue"></label>
-            <label>Hora cita cargue <input type="time" name="hora_cita_cargue"></label>
-            <label>Fecha cita descargue <input type="date" name="fecha_cita_descargue"></label>
-            <label>Hora cita descargue <input type="time" name="hora_cita_descargue"></label>
-            <label>Tiempo descargue: horas <input type="number" name="horas_pacto_descargue" placeholder="0"></label>
-            <label>Tiempo descargue: minutos <input type="number" name="minutos_pacto_descargue" placeholder="0"></label>
-            <label class="ancho-total">Dirección de cargue <input type="text" name="direccion_cargue" maxlength="120"></label>
-            <label class="ancho-total">Dirección de descargue <input type="text" name="direccion_descargue" maxlength="120"></label>
-            <label>Responsable pago cargue <?= selOpc('responsable_pago_cargue', $responsables, 'E') ?></label>
-            <label>Responsable pago descargue <?= selOpc('responsable_pago_descargue', $responsables, 'E') ?></label>
-        </div>
-    </fieldset>
-
-    <fieldset>
-        <legend>6. Valores y manifiesto</legend>
-        <div class="grid">
-            <label>Valor del flete <input type="number" step="0.01" name="valor_flete"></label>
+            <label>Valor del flete <input type="number" step="0.01" name="valor_flete" id="valor_flete"></label>
             <label>Valor del anticipo <input type="number" step="0.01" name="valor_anticipo"></label>
-            <label>Retención ICA ($/mil) <input type="number" step="0.01" name="retencion_ica"></label>
-            <label>Tipo de flete <input type="text" name="tipo_flete" maxlength="2"></label>
+            <label>Porcentaje ICA (%) <input type="number" step="0.01" name="porcentaje_ica" id="porcentaje_ica" placeholder="0.00"></label>
+            <label>Retención ICA <input type="number" step="0.01" name="retencion_ica" id="retencion_ica" readonly></label>
+            <label>Retención en la fuente (1%) <input type="number" step="0.01" name="retencion_fuente" id="retencion_fuente" readonly></label>
+            <label>FOPAT (0.1%) <input type="number" step="0.01" name="fopat" id="fopat" readonly></label>
+            <label>Tipo de flete <?= selOpc('tipo_flete', $tiposFlete, 'G') ?></label>
+            <label>Tipo de viaje pactado <?= selOpc('tipo_valor_pactado', $tiposPactado, 'V', false) ?></label>
             <label>Fecha pago del saldo <input type="date" name="fecha_pago_saldo"></label>
-            <label>Nro. póliza <input type="text" name="nro_poliza" maxlength="20"></label>
-            <label>Tomador de la póliza <?= selOpc('tomador_poliza', $responsables, 'E') ?></label>
         </div>
+        <p class="ayuda">Retención ICA = flete × % ICA ÷ 100. Retención fuente = 1% del flete. FOPAT = 0.1% del flete.
+           El NIT de la empresa y la póliza se toman de <a href="<?= e(ruta('empresa')) ?>" target="_blank">Empresa</a>.</p>
     </fieldset>
 
     <div class="acciones">

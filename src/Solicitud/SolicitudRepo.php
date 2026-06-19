@@ -10,27 +10,26 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../Maestro/EmpresaRepo.php';
 
 final class SolicitudRepo
 {
-    /** Campos aceptados desde el formulario (lista blanca). */
+    /**
+     * Campos aceptados desde el formulario (lista blanca).
+     * Vehículo, conductor, propietario de carga y cargue/descargue se
+     * capturan en la Fase 4 (al confirmar el manifiesto).
+     */
     private const CAMPOS = [
-        'consecutivo', 'fecha_solicitud', 'operacion_transporte', 'tipo_viaje', 'sube_rndc',
+        'consecutivo', 'fecha_solicitud', 'operacion_transporte', 'tipo_viaje',
         'municipio_origen', 'municipio_destino', 'municipio_pago_saldo',
-        'empresa_tipo_id', 'empresa_num_id',
-        'placa_vehiculo', 'conductor_tipo_id', 'conductor_num_id',
         'remitente_tipo_id', 'remitente_num_id',
         'destinatario_tipo_id', 'destinatario_num_id',
-        'propietario_carga_tipo_id', 'propietario_carga_num_id',
         'titular_tipo_id', 'titular_num_id',
         'naturaleza_carga', 'tipo_empaque', 'mercancia_codigo',
         'descripcion_producto', 'cantidad_cargada', 'unidad_medida', 'peso', 'valor_mercancia',
-        'fecha_cita_cargue', 'hora_cita_cargue', 'fecha_cita_descargue', 'hora_cita_descargue',
-        'horas_pacto_descargue', 'minutos_pacto_descargue',
-        'direccion_cargue', 'direccion_descargue',
-        'responsable_pago_cargue', 'responsable_pago_descargue',
-        'valor_flete', 'valor_anticipo', 'retencion_ica', 'tipo_flete',
-        'fecha_pago_saldo', 'nro_poliza', 'tomador_poliza',
+        'valor_flete', 'valor_anticipo', 'porcentaje_ica',
+        'retencion_ica', 'retencion_fuente', 'fopat',
+        'tipo_flete', 'tipo_valor_pactado', 'fecha_pago_saldo',
         'observaciones',
     ];
 
@@ -50,6 +49,13 @@ final class SolicitudRepo
         if (empty($fila['fecha_solicitud'])) {
             $fila['fecha_solicitud'] = date('Y-m-d');
         }
+
+        // Retenciones calculadas en el servidor (no se confía en el cliente).
+        $flete = (float) ($fila['valor_flete'] ?? 0);
+        $pIca  = (float) ($fila['porcentaje_ica'] ?? 0);
+        $fila['retencion_ica']   = round($flete * $pIca / 100, 2);
+        $fila['retencion_fuente'] = round($flete * 0.01, 2);   // 1%
+        $fila['fopat']            = round($flete * 0.001, 2);  // 0.1%
 
         $pdo = db();
         $pdo->beginTransaction();
@@ -75,30 +81,22 @@ final class SolicitudRepo
     private function sembrarRemesa(PDO $pdo, int $solicitudId, array $s): void
     {
         $remesa = [
-            'solicitud_id'            => $solicitudId,
-            'num_remesa'              => $s['consecutivo'] ?? null,
-            'operacion_transporte'    => $s['operacion_transporte'] ?? null,
-            'naturaleza_carga'        => $s['naturaleza_carga'] ?? null,
-            'tipo_empaque'            => $s['tipo_empaque'] ?? null,
-            'mercancia_codigo'        => $s['mercancia_codigo'] ?? null,
-            'descripcion_producto'    => $s['descripcion_producto'] ?? null,
-            'cantidad_cargada'        => $s['cantidad_cargada'] ?? null,
-            'unidad_medida'           => $s['unidad_medida'] ?? null,
-            'remitente_tipo_id'       => $s['remitente_tipo_id'] ?? null,
-            'remitente_num_id'        => $s['remitente_num_id'] ?? null,
-            'destinatario_tipo_id'    => $s['destinatario_tipo_id'] ?? null,
-            'destinatario_num_id'     => $s['destinatario_num_id'] ?? null,
-            'propietario_tipo_id'     => $s['propietario_carga_tipo_id'] ?? null,
-            'propietario_num_id'      => $s['propietario_carga_num_id'] ?? null,
-            'tomador_poliza'          => $s['tomador_poliza'] ?? null,
-            'municipio_cargue'        => $s['municipio_origen'] ?? null,
-            'municipio_descargue'     => $s['municipio_destino'] ?? null,
-            'fecha_cita_cargue'       => $s['fecha_cita_cargue'] ?? null,
-            'hora_cita_cargue'        => $s['hora_cita_cargue'] ?? null,
-            'fecha_cita_descargue'    => $s['fecha_cita_descargue'] ?? null,
-            'hora_cita_descargue'     => $s['hora_cita_descargue'] ?? null,
-            'horas_pacto_descargue'   => $s['horas_pacto_descargue'] ?? null,
-            'minutos_pacto_descargue' => $s['minutos_pacto_descargue'] ?? null,
+            'solicitud_id'         => $solicitudId,
+            'num_remesa'           => $s['consecutivo'] ?? null,
+            'operacion_transporte' => $s['operacion_transporte'] ?? null,
+            'naturaleza_carga'     => $s['naturaleza_carga'] ?? null,
+            'tipo_empaque'         => $s['tipo_empaque'] ?? null,
+            'mercancia_codigo'     => $s['mercancia_codigo'] ?? null,
+            'descripcion_producto' => $s['descripcion_producto'] ?? null,
+            'cantidad_cargada'     => $s['cantidad_cargada'] ?? null,
+            'unidad_medida'        => $s['unidad_medida'] ?? null,
+            'remitente_tipo_id'    => $s['remitente_tipo_id'] ?? null,
+            'remitente_num_id'     => $s['remitente_num_id'] ?? null,
+            'destinatario_tipo_id' => $s['destinatario_tipo_id'] ?? null,
+            'destinatario_num_id'  => $s['destinatario_num_id'] ?? null,
+            'municipio_cargue'     => $s['municipio_origen'] ?? null,
+            'municipio_descargue'  => $s['municipio_destino'] ?? null,
+            // propietario de carga, citas y tiempos de cargue/descargue → Fase 4.
         ];
         $this->insertar($pdo, 'remesa', $remesa);
     }
@@ -106,27 +104,26 @@ final class SolicitudRepo
     /** @param array<string,mixed> $s */
     private function sembrarManifiesto(PDO $pdo, int $solicitudId, array $s): void
     {
+        $poliza = (new EmpresaRepo())->obtener()['nro_poliza'] ?? null;
         $manifiesto = [
-            'solicitud_id'               => $solicitudId,
-            'num_manifiesto'             => $s['consecutivo'] ?? null,
-            'fecha_expedicion'           => $s['fecha_solicitud'] ?? null,
-            'operacion_transporte'       => $s['operacion_transporte'] ?? null,
-            'municipio_origen'           => $s['municipio_origen'] ?? null,
-            'municipio_destino'          => $s['municipio_destino'] ?? null,
-            // Titular del manifiesto = propietario/tenedor del vehículo (NO la empresa).
-            'titular_tipo_id'            => $s['titular_tipo_id'] ?? null,
-            'titular_num_id'             => $s['titular_num_id'] ?? null,
-            'placa_vehiculo'             => $s['placa_vehiculo'] ?? null,
-            'conductor_tipo_id'          => $s['conductor_tipo_id'] ?? null,
-            'conductor_num_id'           => $s['conductor_num_id'] ?? null,
-            'valor_flete_pactado'        => $s['valor_flete'] ?? null,
-            'valor_anticipo'             => $s['valor_anticipo'] ?? null,
-            'retencion_ica'              => $s['retencion_ica'] ?? null,
-            'municipio_pago_saldo'       => $s['municipio_pago_saldo'] ?? null,
-            'fecha_pago_saldo'           => $s['fecha_pago_saldo'] ?? null,
-            'responsable_pago_cargue'    => $s['responsable_pago_cargue'] ?? null,
-            'responsable_pago_descargue' => $s['responsable_pago_descargue'] ?? null,
-            'nro_poliza'                 => $s['nro_poliza'] ?? null,
+            'solicitud_id'         => $solicitudId,
+            'num_manifiesto'       => $s['consecutivo'] ?? null,
+            'fecha_expedicion'     => $s['fecha_solicitud'] ?? null,
+            'operacion_transporte' => $s['operacion_transporte'] ?? null,
+            'municipio_origen'     => $s['municipio_origen'] ?? null,
+            'municipio_destino'    => $s['municipio_destino'] ?? null,
+            'titular_tipo_id'      => $s['titular_tipo_id'] ?? null,
+            'titular_num_id'       => $s['titular_num_id'] ?? null,
+            'valor_flete_pactado'  => $s['valor_flete'] ?? null,
+            'valor_anticipo'       => $s['valor_anticipo'] ?? null,
+            'retencion_ica'        => $s['retencion_ica'] ?? null,
+            'retencion_fuente'     => $s['retencion_fuente'] ?? null,
+            'fopat'                => $s['fopat'] ?? null,
+            'tipo_valor_pactado'   => $s['tipo_valor_pactado'] ?? null,
+            'municipio_pago_saldo' => $s['municipio_pago_saldo'] ?? null,
+            'fecha_pago_saldo'     => $s['fecha_pago_saldo'] ?? null,
+            'nro_poliza'           => $poliza,
+            // placa, conductor y responsables de pago → Fase 4.
         ];
         $this->insertar($pdo, 'manifiesto', $manifiesto);
     }
