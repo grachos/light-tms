@@ -1,96 +1,82 @@
 <?php
 /**
- * Light TMS - Tablero de inicio (Fase 1).
- *
- * Verifica la conexión a la base de datos y muestra el estado del proyecto.
- * Es el punto de entrada web (document root recomendado: esta carpeta /public).
+ * Light TMS - Front controller.
+ * Enruta las páginas mediante ?r=<ruta>.
  */
 
 declare(strict_types=1);
 
 require_once __DIR__ . '/../src/db.php';
-require_once __DIR__ . '/../src/helpers.php';
+require_once __DIR__ . '/../src/vista.php';
+require_once __DIR__ . '/../src/Solicitud/SolicitudRepo.php';
 
-$cfg     = config();
-$errorDb = null;
-$bdOk    = db_disponible($errorDb);
+$r = $_GET['r'] ?? 'inicio';
 
-$conteos = [
-    'Solicitudes de servicio' => $bdOk ? contar_tabla('solicitud_servicio') : null,
-    'Manifiestos'             => $bdOk ? contar_tabla('manifiesto') : null,
-    'Remesas'                 => $bdOk ? contar_tabla('remesa') : null,
-    'En cola (RNDC)'          => $bdOk ? contar_tabla('cola_envios') : null,
-];
-$esquemaOk = $bdOk && !in_array(null, $conteos, true);
-?>
-<!DOCTYPE html>
-<html lang="es-CO">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e($cfg['app']['name']) ?></title>
-    <link rel="stylesheet" href="assets/css/styles.css">
-</head>
-<body>
-    <header class="barra">
-        <div class="barra__marca"><?= e($cfg['app']['name']) ?></div>
-        <div class="barra__sub">Mini TMS &middot; RNDC Colombia</div>
-    </header>
+try {
+    switch ($r) {
+        case 'solicitudes':
+            $repo = new SolicitudRepo();
+            $solicitudes = $repo->listar();
+            layout_top('Solicitudes', 'solicitudes');
+            require __DIR__ . '/../src/vistas/solicitudes.php';
+            layout_bottom();
+            break;
 
-    <main class="contenido">
-        <section class="tarjeta">
-            <h1>Estado del sistema</h1>
+        case 'solicitud.nueva':
+            layout_top('Nueva solicitud', 'solicitud.nueva');
+            require __DIR__ . '/../src/vistas/solicitud_form.php';
+            layout_bottom();
+            break;
 
-            <div class="estado <?= $bdOk ? 'estado--ok' : 'estado--error' ?>">
-                <span class="estado__punto"></span>
-                <?php if ($bdOk): ?>
-                    Base de datos conectada
-                    (<?= e($cfg['db']['name']) ?> en <?= e($cfg['db']['host']) ?>)
-                <?php else: ?>
-                    Sin conexión a la base de datos
-                <?php endif; ?>
-            </div>
+        case 'solicitud.crear':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                header('Location: ' . ruta('solicitud.nueva'));
+                break;
+            }
+            $repo = new SolicitudRepo();
+            try {
+                $id = $repo->crear($_POST);
+                header('Location: ' . ruta('solicitud.ver', [
+                    'id' => $id,
+                    'ok' => 'Solicitud creada. Manifiesto y Remesa generados.',
+                ]));
+            } catch (Throwable $e) {
+                $msg = config()['app']['debug'] ? $e->getMessage() : 'No se pudo guardar la solicitud.';
+                header('Location: ' . ruta('solicitud.nueva', ['err' => $msg]));
+            }
+            break;
 
-            <?php if (!$bdOk): ?>
-                <p class="ayuda">
-                    Revisa las credenciales en el archivo <code>.env</code>.
-                    <?php if ($cfg['app']['debug'] && $errorDb): ?>
-                        <br><small>Detalle: <?= e($errorDb) ?></small>
-                    <?php endif; ?>
-                </p>
-            <?php elseif (!$esquemaOk): ?>
-                <p class="ayuda">
-                    La base de datos responde, pero faltan tablas.
-                    Importa <code>sql/schema.sql</code> desde phpMyAdmin.
-                </p>
-            <?php endif; ?>
-        </section>
+        case 'solicitud.ver':
+            $id = (int) ($_GET['id'] ?? 0);
+            $repo = new SolicitudRepo();
+            $datos = $repo->obtener($id);
+            if ($datos === null) {
+                http_response_code(404);
+                layout_top('No encontrada', 'solicitudes');
+                echo '<div class="tarjeta vacio">Solicitud no encontrada.</div>';
+                layout_bottom();
+                break;
+            }
+            $solicitud  = $datos['solicitud'];
+            $manifiesto = $datos['manifiesto'];
+            $remesa     = $datos['remesa'];
+            layout_top('Solicitud #' . $id, 'solicitudes');
+            require __DIR__ . '/../src/vistas/solicitud_detalle.php';
+            layout_bottom();
+            break;
 
-        <section class="tarjeta">
-            <h2>Documentos</h2>
-            <div class="contadores">
-                <?php foreach ($conteos as $titulo => $valor): ?>
-                    <div class="contador">
-                        <div class="contador__num"><?= $valor === null ? '—' : (int) $valor ?></div>
-                        <div class="contador__lbl"><?= e($titulo) ?></div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        </section>
-
-        <section class="tarjeta">
-            <h2>Próximos pasos</h2>
-            <ol class="pasos">
-                <li class="<?= $esquemaOk ? 'hecho' : '' ?>">Fase 1 — Esqueleto + esquema de BD</li>
-                <li class="hecho">Fase 2 — Cliente RNDC (SOAP/XML + acceso)</li>
-                <li>Fase 3 — Flujo Solicitud de Servicio (siembra Manifiesto + Remesa)</li>
-                <li>Fase 4 — Worker de reintento (cron / store-and-forward)</li>
-            </ol>
-        </section>
-    </main>
-
-    <footer class="pie">
-        <?= e($cfg['app']['name']) ?> &middot; entorno: <?= e($cfg['app']['env']) ?>
-    </footer>
-</body>
-</html>
+        case 'inicio':
+        default:
+            require __DIR__ . '/../src/vistas/inicio.php';
+            break;
+    }
+} catch (Throwable $e) {
+    http_response_code(500);
+    layout_top('Error', '');
+    echo '<div class="alerta alerta--err">Ocurrió un error.';
+    if (config()['app']['debug']) {
+        echo '<br><small>' . e($e->getMessage()) . '</small>';
+    }
+    echo '</div>';
+    layout_bottom();
+}
