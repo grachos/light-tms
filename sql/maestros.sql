@@ -61,9 +61,6 @@ CREATE TABLE IF NOT EXISTS vehiculo (
     -- Obligatorios
     placa               VARCHAR(6)   NOT NULL COMMENT '[NUMPLACA]',
     cod_configuracion   VARCHAR(2)   NOT NULL COMMENT '[CODCONFIGURACIONUNIDADCARGA]',
-    cod_marca           VARCHAR(10)  NULL     COMMENT '[CODMARCAVEHICULOCARGA]',
-    marca               VARCHAR(30)  NULL     COMMENT '[MARCAVEHICULOCARGA]',
-    ano_fabricacion     SMALLINT     NULL     COMMENT '[ANOFABRICACIONVEHICULOCARGA]',
     peso_vacio          INT          NULL     COMMENT '[PESOVEHICULOVACIO] kg',
 
     -- Tenedor (obligatorio). Propietario opcional: el RNDC lo hereda del RUNT.

@@ -38,9 +38,6 @@ $cfgActual  = (string) ($vh['cod_configuracion'] ?? '');
                     <?php endforeach; ?>
                 </select>
             </label>
-            <label>Código marca <input type="text" name="cod_marca" maxlength="10" value="<?= $val('cod_marca') ?>"></label>
-            <label>Marca <input type="text" name="marca" maxlength="30" placeholder="(la trae el RNDC)" value="<?= $val('marca') ?>"></label>
-            <label>Modelo (año) <input type="number" name="ano_fabricacion" value="<?= $val('ano_fabricacion') ?>"></label>
             <label>Peso vacío (kg) * <input type="number" name="peso_vacio" required value="<?= $val('peso_vacio') ?>"></label>
             <label class="ancho-total">Remolque (opcional)
                 <div class="autocompletar" data-ac="vehiculos">

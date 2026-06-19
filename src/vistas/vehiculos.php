@@ -19,15 +19,15 @@ declare(strict_types=1);
 <?php else: ?>
     <table class="tabla">
         <thead>
-            <tr><th>#</th><th>Placa</th><th>Marca</th><th>Modelo</th><th>Tenedor</th><th>RNDC</th><th></th></tr>
+            <tr><th>#</th><th>Placa</th><th>Configuración</th><th>Remolque</th><th>Tenedor</th><th>RNDC</th><th></th></tr>
         </thead>
         <tbody>
             <?php foreach ($vehiculos as $v): ?>
                 <tr>
                     <td><?= (int) $v['id'] ?></td>
                     <td><strong><?= e($v['placa']) ?></strong></td>
-                    <td><?= e($v['marca'] ?? '—') ?></td>
-                    <td><?= e($v['ano_fabricacion'] ?? '—') ?></td>
+                    <td><?= e($v['cod_configuracion'] ?? '—') ?></td>
+                    <td><?= e($v['remolque_placa'] ?? '—') ?></td>
                     <td><?= e($v['tenedor_num_id'] ?? '—') ?></td>
                     <td><span class="chip chip--<?= e($v['estado_rndc']) ?>"><?= e($v['estado_rndc']) ?></span></td>
                     <td>

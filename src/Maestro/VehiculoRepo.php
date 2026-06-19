@@ -14,8 +14,7 @@ require_once __DIR__ . '/../Rndc/RndcClient.php';
 final class VehiculoRepo
 {
     private const CAMPOS = [
-        'placa', 'cod_configuracion', 'cod_marca', 'marca', 'ano_fabricacion', 'peso_vacio',
-        'remolque_placa',
+        'placa', 'cod_configuracion', 'peso_vacio', 'remolque_placa',
         'propietario_tipo_id', 'propietario_num_id', 'tenedor_tipo_id', 'tenedor_num_id',
     ];
 
@@ -53,12 +52,12 @@ final class VehiculoRepo
             return [];
         }
         $stmt = db()->prepare(
-            'SELECT id, placa, marca FROM vehiculo WHERE placa LIKE ? ORDER BY placa LIMIT ' . (int) $limite
+            'SELECT id, placa FROM vehiculo WHERE placa LIKE ? ORDER BY placa LIMIT ' . (int) $limite
         );
         $stmt->execute(['%' . strtoupper($q) . '%']);
         $filas = $stmt->fetchAll();
         foreach ($filas as &$f) {
-            $f['label'] = $f['placa'] . (!empty($f['marca']) ? ' — ' . $f['marca'] : '');
+            $f['label'] = $f['placa'];
         }
         return $filas;
     }
@@ -87,7 +86,7 @@ final class VehiculoRepo
     public function listar(int $limite = 200): array
     {
         return db()->query(
-            'SELECT id, placa, marca, ano_fabricacion, tenedor_num_id, estado_rndc
+            'SELECT id, placa, cod_configuracion, remolque_placa, tenedor_num_id, estado_rndc
              FROM vehiculo ORDER BY id DESC LIMIT ' . (int) $limite
         )->fetchAll();
     }
@@ -114,9 +113,6 @@ final class VehiculoRepo
             'NUMNITEMPRESATRANSPORTE'     => config()['rndc']['empresa'],
             'NUMPLACA'                    => $v['placa'],
             'CODCONFIGURACIONUNIDADCARGA' => $v['cod_configuracion'],
-            'CODMARCAVEHICULOCARGA'       => $v['cod_marca'],
-            'MARCAVEHICULOCARGA'          => $v['marca'],
-            'ANOFABRICACIONVEHICULOCARGA' => $v['ano_fabricacion'],
             'PESOVEHICULOVACIO'           => $v['peso_vacio'],
             'CODTIPOIDPROPIETARIO'        => $v['propietario_tipo_id'],
             'NUMIDPROPIETARIO'            => $v['propietario_num_id'],
