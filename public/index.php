@@ -9,11 +9,60 @@ declare(strict_types=1);
 require_once __DIR__ . '/../src/db.php';
 require_once __DIR__ . '/../src/vista.php';
 require_once __DIR__ . '/../src/Solicitud/SolicitudRepo.php';
+require_once __DIR__ . '/../src/Maestro/MunicipioRepo.php';
+require_once __DIR__ . '/../src/Maestro/TerceroRepo.php';
 
 $r = $_GET['r'] ?? 'inicio';
 
 try {
     switch ($r) {
+
+        case 'municipios.buscar':
+            header('Content-Type: application/json; charset=utf-8');
+            $repo = new MunicipioRepo();
+            echo json_encode($repo->buscar((string) ($_GET['q'] ?? '')), JSON_UNESCAPED_UNICODE);
+            break;
+
+        case 'terceros':
+            $terceros = (new TerceroRepo())->listar();
+            layout_top('Terceros', 'terceros');
+            require __DIR__ . '/../src/vistas/terceros.php';
+            layout_bottom();
+            break;
+
+        case 'tercero.nuevo':
+            layout_top('Nuevo tercero', 'terceros');
+            require __DIR__ . '/../src/vistas/tercero_form.php';
+            layout_bottom();
+            break;
+
+        case 'tercero.crear':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                header('Location: ' . ruta('tercero.nuevo'));
+                break;
+            }
+            if (empty($_POST['cod_municipio'])) {
+                header('Location: ' . ruta('tercero.nuevo', ['err' => 'Elige el municipio de la lista.']));
+                break;
+            }
+            try {
+                (new TerceroRepo())->crear($_POST);
+                header('Location: ' . ruta('terceros', ['ok' => 'Tercero guardado.']));
+            } catch (Throwable $e) {
+                $msg = config()['app']['debug'] ? $e->getMessage() : 'No se pudo guardar el tercero.';
+                header('Location: ' . ruta('tercero.nuevo', ['err' => $msg]));
+            }
+            break;
+
+        case 'tercero.registrar':
+            $id = (int) ($_GET['id'] ?? 0);
+            $resp = (new TerceroRepo())->registrarEnRndc($id);
+            if ($resp->ok) {
+                header('Location: ' . ruta('terceros', ['ok' => 'Tercero registrado en RNDC (id ' . $resp->ingresoId . ').']));
+            } else {
+                header('Location: ' . ruta('terceros', ['err' => 'RNDC: ' . $resp->error]));
+            }
+            break;
         case 'solicitudes':
             $repo = new SolicitudRepo();
             $solicitudes = $repo->listar();

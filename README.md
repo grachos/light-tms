@@ -51,7 +51,9 @@ Los campos llevan en comentarios SQL su variable oficial del RNDC entre `[corche
 ## Puesta en marcha (local)
 
 1. Copia `.env.example` a `.env` y completa los datos de la BD.
-2. Crea la base de datos e importa `sql/schema.sql` (phpMyAdmin o `mysql < sql/schema.sql`).
+2. Crea la base de datos e importa, en orden, los SQL de `sql/`:
+   `schema.sql` (documentos), `municipios.sql` (catálogo DIVIPOLA) y
+   `maestros.sql` (Tercero y Vehículo).
 3. Sirve la carpeta `public/`:
    ```bash
    php -S localhost:8000 -t public

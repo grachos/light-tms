@@ -207,3 +207,29 @@ code {
 .ficha dt { color: #5a6b7e; font-size: 13px; }
 .ficha dd { margin: 0; font-size: 14px; }
 .vacio { text-align: center; color: #5a6b7e; }
+
+/* ---- Autocompletado ---- */
+.autocompletar { position: relative; }
+.mun-lista {
+    list-style: none;
+    margin: 2px 0 0;
+    padding: 0;
+    position: absolute;
+    z-index: 50;
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--gris-borde);
+    border-radius: var(--radio);
+    box-shadow: 0 6px 18px rgba(0,0,0,.10);
+    max-height: 240px;
+    overflow-y: auto;
+}
+.mun-lista li { padding: 8px 12px; font-size: 14px; cursor: pointer; }
+.mun-lista li:hover { background: #eaf1fb; }
+
+/* ---- Mapa ---- */
+#mapa { height: 320px; border: 1px solid var(--gris-borde); border-radius: var(--radio); margin-bottom: 10px; }
+.mapa-barra { display: flex; gap: 8px; margin-bottom: 10px; }
+.mapa-barra input { flex: 1; padding: 8px 10px; border: 1px solid var(--gris-borde); border-radius: var(--radio); }
+.check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.check input { width: auto; }

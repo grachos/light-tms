@@ -1,0 +1,115 @@
+<?php
+/**
+ * Light TMS - Maestro de Terceros (proceso 11 del RNDC).
+ */
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../Rndc/RndcClient.php';
+
+final class TerceroRepo
+{
+    private const CAMPOS = [
+        'tipo_id', 'num_id', 'nombre', 'primer_apellido', 'segundo_apellido', 'regimen_simple',
+        'direccion', 'cod_municipio', 'municipio_nombre', 'sede', 'nombre_sede',
+        'telefono', 'celular', 'email', 'latitud', 'longitud',
+        'es_conductor', 'categoria_licencia', 'num_licencia', 'fecha_venc_licencia',
+    ];
+
+    /**
+     * @param array<string,mixed> $datos
+     * @return int id del tercero
+     */
+    public function crear(array $datos): int
+    {
+        $fila = [];
+        foreach (self::CAMPOS as $c) {
+            $valor = $datos[$c] ?? null;
+            $fila[$c] = ($valor === '' ? null : $valor);
+        }
+        $fila['es_conductor'] = !empty($datos['es_conductor']) ? 1 : 0;
+
+        $cols = implode(', ', array_keys($fila));
+        $ph   = implode(', ', array_map(static fn ($c) => ":$c", array_keys($fila)));
+        $stmt = db()->prepare("INSERT INTO tercero ($cols) VALUES ($ph)");
+        $stmt->execute($fila);
+        return (int) db()->lastInsertId();
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function listar(int $limite = 200): array
+    {
+        return db()->query(
+            'SELECT id, tipo_id, num_id, nombre, municipio_nombre, es_conductor, estado_rndc
+             FROM tercero ORDER BY id DESC LIMIT ' . (int) $limite
+        )->fetchAll();
+    }
+
+    /** @return array<string,mixed>|null */
+    public function obtener(int $id): ?array
+    {
+        $stmt = db()->prepare('SELECT * FROM tercero WHERE id = ?');
+        $stmt->execute([$id]);
+        return $stmt->fetch() ?: null;
+    }
+
+    /**
+     * Registra el tercero en el RNDC (proceso 11) y actualiza su estado.
+     */
+    public function registrarEnRndc(int $id): RndcRespuesta
+    {
+        $t = $this->obtener($id);
+        if ($t === null) {
+            return RndcRespuesta::fallo('Tercero no encontrado.', 0, '');
+        }
+
+        $rndc = RndcClient::desdeConfig();
+        $vars = [
+            'NUMNITEMPRESATRANSPORTE'  => config()['rndc']['empresa'],
+            'CODTIPOIDTERCERO'         => $t['tipo_id'],
+            'NUMIDTERCERO'             => $t['num_id'],
+            'NOMIDTERCERO'             => $t['nombre'],
+            'PRIMERAPELLIDOIDTERCERO'  => $t['primer_apellido'],
+            'SEGUNDOAPELLIDOIDTERCERO' => $t['segundo_apellido'],
+            'REGIMENSIMPLE'            => $t['regimen_simple'],
+            'NOMENCLATURADIRECCION'    => $t['direccion'],
+            'CODMUNICIPIORNDC'         => $t['cod_municipio'],
+            'CODSEDETERCERO'           => $t['sede'],
+            'NOMSEDETERCERO'           => $t['nombre_sede'],
+            'NUMTELEFONOCONTACTO'      => $t['telefono'],
+            'NUMCELULARPERSONA'        => $t['celular'],
+            'LATITUD'                  => $t['latitud'],
+            'LONGITUD'                 => $t['longitud'],
+        ];
+        if ((int) $t['es_conductor'] === 1) {
+            $vars['NOMCATEGORIALICENCIACONDUCCION'] = $t['categoria_licencia'];
+            $vars['NUMLICENCIACONDUCCION']          = $t['num_licencia'];
+            $vars['FECHAVENCIMIENTOLICENCIA']       = self::fechaRndc($t['fecha_venc_licencia']);
+        }
+
+        $resp = $rndc->ingresar(11, $vars);
+
+        $upd = db()->prepare(
+            'UPDATE tercero SET estado_rndc = ?, rndc_ingreso_id = ?, rndc_error = ? WHERE id = ?'
+        );
+        $upd->execute([
+            $resp->ok ? 'registrado' : 'error',
+            $resp->ingresoId,
+            $resp->ok ? null : $resp->error,
+            $id,
+        ]);
+
+        return $resp;
+    }
+
+    /** Convierte una fecha YYYY-MM-DD al formato del RNDC DD/MM/YYYY. */
+    private static function fechaRndc(?string $fecha): ?string
+    {
+        if (empty($fecha)) {
+            return null;
+        }
+        $ts = strtotime($fecha);
+        return $ts ? date('d/m/Y', $ts) : $fecha;
+    }
+}
