@@ -1,0 +1,98 @@
+/* Light TMS - estilos base (look sobrio tipo RNDC2) */
+
+:root {
+    --azul:        #1c56a4; /* color principal */
+    --azul-oscuro: #0d3b73;
+    --gris-fondo:  #eef1f5;
+    --gris-borde:  #d4dae2;
+    --texto:       #243142;
+    --ok:          #1f9d57;
+    --error:       #c0392b;
+    --radio:       6px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--gris-fondo);
+    color: var(--texto);
+    line-height: 1.5;
+}
+
+.barra {
+    background: var(--azul);
+    color: #fff;
+    padding: 14px 24px;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+}
+.barra__marca { font-size: 20px; font-weight: 700; letter-spacing: .3px; }
+.barra__sub   { font-size: 13px; opacity: .85; }
+
+.contenido {
+    max-width: 880px;
+    margin: 28px auto;
+    padding: 0 18px;
+    display: grid;
+    gap: 18px;
+}
+
+.tarjeta {
+    background: #fff;
+    border: 1px solid var(--gris-borde);
+    border-radius: var(--radio);
+    padding: 20px 22px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.tarjeta h1 { margin: 0 0 14px; font-size: 19px; }
+.tarjeta h2 { margin: 0 0 14px; font-size: 16px; color: var(--azul-oscuro); }
+
+.estado {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    padding: 10px 12px;
+    border-radius: var(--radio);
+}
+.estado__punto { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.estado--ok    { background: #e7f6ee; color: var(--ok); }
+.estado--ok .estado__punto    { background: var(--ok); }
+.estado--error { background: #fdecea; color: var(--error); }
+.estado--error .estado__punto { background: var(--error); }
+
+.ayuda { margin: 12px 0 0; font-size: 14px; color: #5a6b7e; }
+code {
+    background: #f2f4f7;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.contadores {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+.contador {
+    border: 1px solid var(--gris-borde);
+    border-radius: var(--radio);
+    padding: 16px;
+    text-align: center;
+}
+.contador__num { font-size: 30px; font-weight: 700; color: var(--azul); }
+.contador__lbl { font-size: 13px; color: #5a6b7e; margin-top: 4px; }
+
+.pasos { margin: 0; padding-left: 20px; }
+.pasos li { margin: 6px 0; }
+.pasos li.hecho { color: var(--ok); text-decoration: line-through; }
+
+.pie {
+    text-align: center;
+    color: #7a8aa0;
+    font-size: 12px;
+    padding: 20px;
+}
