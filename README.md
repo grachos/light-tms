@@ -74,6 +74,9 @@ Los campos llevan en comentarios SQL su variable oficial del RNDC entre `[corche
 ## Estado
 
 - [x] **Fase 1** — Esqueleto + esquema de BD
-- [ ] **Fase 2** — Cliente RNDC (SOAP/XML + bloque `<acceso>`)
+- [x] **Fase 2** — Cliente RNDC (SOAP/XML + `<acceso>`) — ver [docs/RNDC.md](docs/RNDC.md)
 - [ ] **Fase 3** — Flujo Solicitud de Servicio (UI estilo RNDC2)
 - [ ] **Fase 4** — Worker de reintento (cron)
+
+> El cliente RNDC (`src/Rndc/RndcClient.php`) está verificado de extremo a extremo
+> contra el servidor real del RNDC. Solo falta cargar credenciales válidas en `.env`.

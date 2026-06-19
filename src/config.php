@@ -99,25 +99,18 @@ function config(): array
             'charset' => env('DB_CHARSET', 'utf8mb4'),
         ],
         'rndc' => [
-            'url'      => env('RNDC_URL', ''),
+            // 'pruebas' (servidor rndc) o 'produccion' (rndcws/rndcws2/plc).
+            'ambiente' => env('RNDC_AMBIENTE', 'pruebas'),
             'username' => env('RNDC_USERNAME', ''),
             'password' => env('RNDC_PASSWORD', ''),
             'empresa'  => env('RNDC_EMPRESA', ''),
+            // Override opcional del host base (si el RNDC cambia de URL).
+            'host_override' => env('RNDC_HOST_OVERRIDE', ''),
+            'timeout'  => (int) env('RNDC_TIMEOUT', 30),
         ],
         'cola' => [
             'max_intentos'      => (int) env('COLA_MAX_INTENTOS', 10),
             'minutos_reintento' => (int) env('COLA_MINUTOS_REINTENTO', 15),
-        ],
-        /**
-         * Números de proceso del RNDC para el bloque <solicitud>.
-         * TODO (Fase 2): confirmar los valores oficiales contra el manual
-         * del RNDC vigente antes de enviar a producción.
-         */
-        'rndc_procesos' => [
-            'tercero'    => null,
-            'vehiculo'   => null,
-            'remesa'     => null,
-            'manifiesto' => null,
         ],
     ];
 }

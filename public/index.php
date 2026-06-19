@@ -82,7 +82,7 @@ $esquemaOk = $bdOk && !in_array(null, $conteos, true);
             <h2>Próximos pasos</h2>
             <ol class="pasos">
                 <li class="<?= $esquemaOk ? 'hecho' : '' ?>">Fase 1 — Esqueleto + esquema de BD</li>
-                <li>Fase 2 — Cliente RNDC (SOAP/XML + acceso)</li>
+                <li class="hecho">Fase 2 — Cliente RNDC (SOAP/XML + acceso)</li>
                 <li>Fase 3 — Flujo Solicitud de Servicio (siembra Manifiesto + Remesa)</li>
                 <li>Fase 4 — Worker de reintento (cron / store-and-forward)</li>
             </ol>
