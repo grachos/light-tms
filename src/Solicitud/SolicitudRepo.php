@@ -39,7 +39,13 @@ final class SolicitudRepo
      * @param array<string,mixed> $datos
      * @return int id de la solicitud creada
      */
-    public function crear(array $datos): int
+    /**
+     * Normaliza los datos del formulario y calcula las retenciones.
+     *
+     * @param array<string,mixed> $datos
+     * @return array<string,mixed>
+     */
+    private function prepararFila(array $datos): array
     {
         $fila = [];
         foreach (self::CAMPOS as $c) {
@@ -49,13 +55,18 @@ final class SolicitudRepo
         if (empty($fila['fecha_solicitud'])) {
             $fila['fecha_solicitud'] = date('Y-m-d');
         }
-
         // Retenciones calculadas en el servidor (no se confía en el cliente).
         $flete = (float) ($fila['valor_flete'] ?? 0);
         $pIca  = (float) ($fila['porcentaje_ica'] ?? 0);
-        $fila['retencion_ica']   = round($flete * $pIca / 100, 2);
+        $fila['retencion_ica']    = round($flete * $pIca / 100, 2);
         $fila['retencion_fuente'] = round($flete * 0.01, 2);   // 1%
         $fila['fopat']            = round($flete * 0.001, 2);  // 0.1%
+        return $fila;
+    }
+
+    public function crear(array $datos): int
+    {
+        $fila = $this->prepararFila($datos);
 
         $pdo = db();
         $pdo->beginTransaction();
@@ -71,6 +82,36 @@ final class SolicitudRepo
 
             $pdo->commit();
             return $id;
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Actualiza la solicitud y re-siembra su remesa + manifiesto.
+     * Solo debe usarse mientras la solicitud no esté 'despachada'.
+     *
+     * @param array<string,mixed> $datos
+     */
+    public function actualizar(int $id, array $datos): void
+    {
+        $fila = $this->prepararFila($datos);
+        $pdo = db();
+        $pdo->beginTransaction();
+        try {
+            $sets = implode(', ', array_map(static fn ($c) => "$c = :$c", array_keys($fila)));
+            $params = $fila;
+            $params['id'] = $id;
+            $pdo->prepare("UPDATE solicitud_servicio SET $sets WHERE id = :id")->execute($params);
+
+            // Pre-despacho: se regeneran remesa y manifiesto desde la solicitud.
+            $pdo->prepare('DELETE FROM remesa WHERE solicitud_id = ?')->execute([$id]);
+            $pdo->prepare('DELETE FROM manifiesto WHERE solicitud_id = ?')->execute([$id]);
+            $this->sembrarRemesa($pdo, $id, $fila);
+            $this->sembrarManifiesto($pdo, $id, $fila);
+
+            $pdo->commit();
         } catch (Throwable $e) {
             $pdo->rollBack();
             throw $e;

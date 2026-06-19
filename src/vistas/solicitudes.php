@@ -24,7 +24,6 @@ declare(strict_types=1);
                 <th>Consecutivo</th>
                 <th>Fecha</th>
                 <th>Origen → Destino</th>
-                <th>Placa</th>
                 <th>Estado</th>
                 <th></th>
             </tr>
@@ -36,9 +35,13 @@ declare(strict_types=1);
                     <td><?= e($s['consecutivo'] ?? '—') ?></td>
                     <td><?= e($s['fecha_solicitud'] ?? '') ?></td>
                     <td><?= e($s['municipio_origen'] ?? '—') ?> → <?= e($s['municipio_destino'] ?? '—') ?></td>
-                    <td><?= e($s['placa_vehiculo'] ?? '—') ?></td>
                     <td><span class="chip chip--<?= e($s['estado']) ?>"><?= e($s['estado']) ?></span></td>
-                    <td><a href="<?= e(ruta('solicitud.ver', ['id' => (int) $s['id']])) ?>">Ver</a></td>
+                    <td>
+                        <a href="<?= e(ruta('solicitud.ver', ['id' => (int) $s['id']])) ?>">Ver</a>
+                        <?php if (($s['estado'] ?? '') !== 'despachada'): ?>
+                            &middot; <a href="<?= e(ruta('solicitud.editar', ['id' => (int) $s['id']])) ?>">Editar</a>
+                        <?php endif; ?>
+                    </td>
                 </tr>
             <?php endforeach; ?>
         </tbody>

@@ -58,7 +58,8 @@ Los campos llevan en comentarios SQL su variable oficial del RNDC entre `[corche
    (mercancía general), `migracion_v2.sql`, `migracion_v3.sql`
    (campos de despacho, maestro_empresa, retenciones), `migracion_v4.sql`
    (vehículo solo requeridos + remolque), `migracion_v5.sql`
-   (quita marca/modelo del vehículo) y `catalogo_configuracion.sql`
+   (quita marca/modelo del vehículo), `migracion_v6.sql`
+   (estado 'despachada' en la solicitud) y `catalogo_configuracion.sql`
    (configuración de unidad de carga).
 3. Sirve la carpeta `public/`:
    ```bash

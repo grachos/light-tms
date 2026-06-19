@@ -216,6 +216,48 @@ try {
             }
             break;
 
+        case 'solicitud.editar':
+            $datos = (new SolicitudRepo())->obtener((int) ($_GET['id'] ?? 0));
+            if ($datos === null) {
+                header('Location: ' . ruta('solicitudes', ['err' => 'Solicitud no encontrada.']));
+                break;
+            }
+            $solicitud = $datos['solicitud'];
+            if ($solicitud['estado'] === 'despachada') {
+                header('Location: ' . ruta('solicitud.ver', ['id' => (int) $solicitud['id'], 'err' => 'La solicitud ya fue despachada; no se puede editar.']));
+                break;
+            }
+            $accion = ruta('solicitud.actualizar', ['id' => (int) $solicitud['id']]);
+            layout_top('Editar solicitud', 'solicitudes');
+            require __DIR__ . '/../src/vistas/solicitud_form.php';
+            layout_bottom();
+            break;
+
+        case 'solicitud.actualizar':
+            $id = (int) ($_GET['id'] ?? 0);
+            $repo = new SolicitudRepo();
+            $datos = $repo->obtener($id);
+            if ($datos === null) {
+                header('Location: ' . ruta('solicitudes', ['err' => 'Solicitud no encontrada.']));
+                break;
+            }
+            if ($datos['solicitud']['estado'] === 'despachada') {
+                header('Location: ' . ruta('solicitud.ver', ['id' => $id, 'err' => 'La solicitud ya fue despachada; no se puede editar.']));
+                break;
+            }
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                header('Location: ' . ruta('solicitud.editar', ['id' => $id]));
+                break;
+            }
+            try {
+                $repo->actualizar($id, $_POST);
+                header('Location: ' . ruta('solicitud.ver', ['id' => $id, 'ok' => 'Solicitud actualizada.']));
+            } catch (Throwable $e) {
+                $msg = config()['app']['debug'] ? $e->getMessage() : 'No se pudo actualizar la solicitud.';
+                header('Location: ' . ruta('solicitud.editar', ['id' => $id, 'err' => $msg]));
+            }
+            break;
+
         case 'solicitud.ver':
             $id = (int) ($_GET['id'] ?? 0);
             $repo = new SolicitudRepo();

@@ -1,12 +1,20 @@
 <?php
 /**
- * Vista: formulario de Solicitud de Servicio (etapa inicial).
- * El vehículo, conductor, propietario de la carga y los datos de cargue/
- * descargue se completan al confirmar el manifiesto (Fase 4).
+ * Vista: Solicitud de Servicio (crear o editar).
+ * @var array<string,mixed> $solicitud (vacío al crear)
+ * @var string $accion
  */
 declare(strict_types=1);
 
+$s      = $solicitud ?? [];
+$accion = $accion ?? ruta('solicitud.crear');
+$editar = !empty($s);
+$muni   = new MunicipioRepo();
 $empaques = (new CatalogoRepo())->empaques();
+
+$v   = static fn (string $c): string => e((string) ($GLOBALS['s'][$c] ?? ''));
+/** valor guardado o, si no hay, el default (para selects). */
+$cur = static fn (string $c, string $def): string => (string) ($GLOBALS['s'][$c] ?? $def);
 
 $operaciones  = ['G' => 'General', 'P' => 'Paqueteo', 'C' => 'Contenedor Cargado', 'V' => 'Contenedor Vacío'];
 $naturalezas  = [
@@ -21,64 +29,71 @@ $tiposFlete   = [
 $tiposPactado = ['V' => 'Por Viaje', 'K' => 'Por Kilogramo', 'G' => 'Por Galón'];
 
 if (!function_exists('selOpc')) {
-    function selOpc(string $name, array $opciones, string $def = '', bool $conVacio = true): string
+    function selOpc(string $name, array $opciones, string $sel, bool $conVacio = true): string
     {
         $h = '<select name="' . e($name) . '">';
         if ($conVacio) { $h .= '<option value="">—</option>'; }
-        foreach ($opciones as $v => $t) {
-            $h .= '<option value="' . e((string) $v) . '"' . ((string) $v === $def ? ' selected' : '') . '>' . e($t) . '</option>';
+        foreach ($opciones as $val => $t) {
+            $h .= '<option value="' . e((string) $val) . '"' . ((string) $val === $sel ? ' selected' : '') . '>' . e($t) . '</option>';
         }
         return $h . '</select>';
     }
 }
-if (!function_exists('acTercero')) {
-    function acTercero(string $tipoName, string $numName, string $ph = 'Buscar tercero…', string $params = ''): string
+if (!function_exists('acTerceroP')) {
+    /** Picker de tercero con precarga (tipo/num + texto visible). */
+    function acTerceroP(array $s, string $tipoName, string $numName, string $ph = 'Buscar tercero…', string $params = ''): string
     {
-        $p = $params !== '' ? ' data-ac-params="' . e($params) . '"' : '';
+        $tipo = (string) ($s[$tipoName] ?? '');
+        $num  = (string) ($s[$numName] ?? '');
+        $txt  = $num !== '' ? trim($tipo . ' ' . $num) : '';
+        $p    = $params !== '' ? ' data-ac-params="' . e($params) . '"' : '';
         return '<div class="autocompletar" data-ac="terceros"' . $p . '>'
-            . '<input type="text" class="ac-texto" autocomplete="off" placeholder="' . e($ph) . '">'
+            . '<input type="text" class="ac-texto" autocomplete="off" placeholder="' . e($ph) . '" value="' . e($txt) . '">'
             . '<ul class="ac-lista"></ul>'
-            . '<input type="hidden" name="' . e($tipoName) . '" data-ac-field="tipo_id">'
-            . '<input type="hidden" name="' . e($numName) . '" data-ac-field="num_id">'
+            . '<input type="hidden" name="' . e($tipoName) . '" data-ac-field="tipo_id" value="' . e($tipo) . '">'
+            . '<input type="hidden" name="' . e($numName) . '" data-ac-field="num_id" value="' . e($num) . '">'
             . '</div>';
     }
 }
-if (!function_exists('acMunicipio')) {
-    function acMunicipio(string $name, string $ph = 'Escribe y elige…'): string
+if (!function_exists('acMunicipioP')) {
+    /** Picker de municipio con precarga (código + nombre). */
+    function acMunicipioP(array $s, MunicipioRepo $muni, string $name, string $ph = 'Escribe y elige…'): string
     {
+        $code = (string) ($s[$name] ?? '');
+        $nom  = $code !== '' ? (string) ($muni->nombre($code) ?? '') : '';
         return '<div class="autocompletar" data-ac="municipios">'
-            . '<input type="text" class="ac-texto" autocomplete="off" placeholder="' . e($ph) . '">'
+            . '<input type="text" class="ac-texto" autocomplete="off" placeholder="' . e($ph) . '" value="' . e($nom) . '">'
             . '<ul class="ac-lista"></ul>'
-            . '<input type="hidden" name="' . e($name) . '" data-ac-field="codigo_rndc">'
+            . '<input type="hidden" name="' . e($name) . '" data-ac-field="codigo_rndc" value="' . e($code) . '">'
             . '</div>';
     }
 }
 ?>
-<h1>Nueva Solicitud de Servicio</h1>
-<p class="ayuda">Etapa inicial. Genera el <strong>Manifiesto</strong> y la <strong>Remesa</strong>.
-   El vehículo, conductor y datos de cargue/descargue se completan al confirmar el despacho.</p>
+<h1><?= $editar ? 'Editar' : 'Nueva' ?> Solicitud de Servicio</h1>
+<p class="ayuda">Genera el <strong>Manifiesto</strong> y la <strong>Remesa</strong>.
+   El vehículo, conductor y cargue/descargue se completan al confirmar el despacho.</p>
 
 <?php flash(); ?>
 
-<form method="post" action="<?= e(ruta('solicitud.crear')) ?>" class="form">
+<form method="post" action="<?= e($accion) ?>" class="form">
 
     <fieldset>
         <legend>1. Generales</legend>
         <div class="grid">
-            <label>Consecutivo <input type="text" name="consecutivo" maxlength="30" placeholder="SS-0001"></label>
-            <label>Fecha <input type="date" name="fecha_solicitud" value="<?= e(date('Y-m-d')) ?>"></label>
-            <label>Operación de transporte <?= selOpc('operacion_transporte', $operaciones, 'G') ?></label>
-            <label>Tipo de viaje <?= selOpc('tipo_viaje', ['NACIONAL' => 'Nacional', 'URBANO' => 'Urbano'], 'NACIONAL', false) ?></label>
-            <label class="ancho-total">Observaciones <textarea name="observaciones" rows="2" maxlength="200"></textarea></label>
+            <label>Consecutivo <input type="text" name="consecutivo" maxlength="30" placeholder="SS-0001" value="<?= $v('consecutivo') ?>"></label>
+            <label>Fecha <input type="date" name="fecha_solicitud" value="<?= $editar ? $v('fecha_solicitud') : e(date('Y-m-d')) ?>"></label>
+            <label>Operación de transporte <?= selOpc('operacion_transporte', $operaciones, $cur('operacion_transporte', 'G')) ?></label>
+            <label>Tipo de viaje <?= selOpc('tipo_viaje', ['NACIONAL' => 'Nacional', 'URBANO' => 'Urbano'], $cur('tipo_viaje', 'NACIONAL'), false) ?></label>
+            <label class="ancho-total">Observaciones <textarea name="observaciones" rows="2" maxlength="200"><?= $v('observaciones') ?></textarea></label>
         </div>
     </fieldset>
 
     <fieldset>
         <legend>2. Partes</legend>
         <div class="grid">
-            <label class="ancho-total">Remitente <?= acTercero('remitente_tipo_id', 'remitente_num_id') ?></label>
-            <label class="ancho-total">Destinatario <?= acTercero('destinatario_tipo_id', 'destinatario_num_id') ?></label>
-            <label class="ancho-total">Titular del manifiesto <?= acTercero('titular_tipo_id', 'titular_num_id') ?></label>
+            <label class="ancho-total">Remitente <?= acTerceroP($s, 'remitente_tipo_id', 'remitente_num_id') ?></label>
+            <label class="ancho-total">Destinatario <?= acTerceroP($s, 'destinatario_tipo_id', 'destinatario_num_id') ?></label>
+            <label class="ancho-total">Titular del manifiesto <?= acTerceroP($s, 'titular_tipo_id', 'titular_num_id') ?></label>
         </div>
         <p class="ayuda">¿Falta alguien? Créalo en <a href="<?= e(ruta('terceros')) ?>" target="_blank">Terceros</a>.</p>
     </fieldset>
@@ -86,21 +101,21 @@ if (!function_exists('acMunicipio')) {
     <fieldset>
         <legend>3. Ruta</legend>
         <div class="grid">
-            <label class="ancho-total">Municipio origen <?= acMunicipio('municipio_origen') ?></label>
-            <label class="ancho-total">Municipio destino <?= acMunicipio('municipio_destino') ?></label>
-            <label class="ancho-total">Municipio pago del saldo <?= acMunicipio('municipio_pago_saldo') ?></label>
+            <label class="ancho-total">Municipio origen <?= acMunicipioP($s, $muni, 'municipio_origen') ?></label>
+            <label class="ancho-total">Municipio destino <?= acMunicipioP($s, $muni, 'municipio_destino') ?></label>
+            <label class="ancho-total">Municipio pago del saldo <?= acMunicipioP($s, $muni, 'municipio_pago_saldo') ?></label>
         </div>
     </fieldset>
 
     <fieldset>
         <legend>4. Carga</legend>
         <div class="grid">
-            <label>Naturaleza de la carga <?= selOpc('naturaleza_carga', $naturalezas, '1') ?></label>
+            <label>Naturaleza de la carga <?= selOpc('naturaleza_carga', $naturalezas, $cur('naturaleza_carga', '1')) ?></label>
             <label>Tipo de empaque
                 <select name="tipo_empaque">
                     <option value="">—</option>
                     <?php foreach ($empaques as $emp): ?>
-                        <option value="<?= e($emp['codigo']) ?>"><?= e($emp['codigo'] . ' - ' . $emp['descripcion']) ?></option>
+                        <option value="<?= e($emp['codigo']) ?>" <?= $emp['codigo'] === ($s['tipo_empaque'] ?? '') ? 'selected' : '' ?>><?= e($emp['codigo'] . ' - ' . $emp['descripcion']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </label>
@@ -108,36 +123,35 @@ if (!function_exists('acMunicipio')) {
                 <div class="autocompletar" data-ac="productos">
                     <input type="text" class="ac-texto" autocomplete="off" placeholder="Buscar producto…">
                     <ul class="ac-lista"></ul>
-                    <input type="text" name="mercancia_codigo" data-ac-field="codigo" maxlength="10" placeholder="Código (autollenado o manual)">
+                    <input type="text" name="mercancia_codigo" data-ac-field="codigo" maxlength="10" placeholder="Código" value="<?= $v('mercancia_codigo') ?>">
                 </div>
             </label>
-            <label class="ancho-total">Descripción del producto <input type="text" name="descripcion_producto" maxlength="250"></label>
-            <label>Cantidad cargada <input type="number" step="0.001" name="cantidad_cargada"></label>
-            <label>Unidad de medida <?= selOpc('unidad_medida', $unidades, '1') ?></label>
-            <label>Peso (kg) <input type="number" step="0.001" name="peso"></label>
-            <label>Valor de la mercancía <input type="number" step="0.01" name="valor_mercancia"></label>
+            <label class="ancho-total">Descripción del producto <input type="text" name="descripcion_producto" maxlength="250" value="<?= $v('descripcion_producto') ?>"></label>
+            <label>Cantidad cargada <input type="number" step="0.001" name="cantidad_cargada" value="<?= $v('cantidad_cargada') ?>"></label>
+            <label>Unidad de medida <?= selOpc('unidad_medida', $unidades, $cur('unidad_medida', '1')) ?></label>
+            <label>Peso (kg) <input type="number" step="0.001" name="peso" value="<?= $v('peso') ?>"></label>
+            <label>Valor de la mercancía <input type="number" step="0.01" name="valor_mercancia" value="<?= $v('valor_mercancia') ?>"></label>
         </div>
     </fieldset>
 
     <fieldset>
         <legend>5. Valores y manifiesto</legend>
         <div class="grid">
-            <label>Valor del flete <input type="number" step="0.01" name="valor_flete" id="valor_flete"></label>
-            <label>Valor del anticipo <input type="number" step="0.01" name="valor_anticipo"></label>
-            <label>Porcentaje ICA (%) <input type="number" step="0.01" name="porcentaje_ica" id="porcentaje_ica" placeholder="0.00"></label>
-            <label>Retención ICA <input type="number" step="0.01" name="retencion_ica" id="retencion_ica" readonly></label>
-            <label>Retención en la fuente (1%) <input type="number" step="0.01" name="retencion_fuente" id="retencion_fuente" readonly></label>
-            <label>FOPAT (0.1%) <input type="number" step="0.01" name="fopat" id="fopat" readonly></label>
-            <label>Tipo de flete <?= selOpc('tipo_flete', $tiposFlete, 'G') ?></label>
-            <label>Tipo de viaje pactado <?= selOpc('tipo_valor_pactado', $tiposPactado, 'V', false) ?></label>
-            <label>Fecha pago del saldo <input type="date" name="fecha_pago_saldo"></label>
+            <label>Valor del flete <input type="number" step="0.01" name="valor_flete" id="valor_flete" value="<?= $v('valor_flete') ?>"></label>
+            <label>Valor del anticipo <input type="number" step="0.01" name="valor_anticipo" value="<?= $v('valor_anticipo') ?>"></label>
+            <label>Porcentaje ICA (%) <input type="number" step="0.01" name="porcentaje_ica" id="porcentaje_ica" value="<?= $v('porcentaje_ica') ?>"></label>
+            <label>Retención ICA <input type="number" step="0.01" name="retencion_ica" id="retencion_ica" readonly value="<?= $v('retencion_ica') ?>"></label>
+            <label>Retención en la fuente (1%) <input type="number" step="0.01" name="retencion_fuente" id="retencion_fuente" readonly value="<?= $v('retencion_fuente') ?>"></label>
+            <label>FOPAT (0.1%) <input type="number" step="0.01" name="fopat" id="fopat" readonly value="<?= $v('fopat') ?>"></label>
+            <label>Tipo de flete <?= selOpc('tipo_flete', $tiposFlete, $cur('tipo_flete', 'G')) ?></label>
+            <label>Tipo de viaje pactado <?= selOpc('tipo_valor_pactado', $tiposPactado, $cur('tipo_valor_pactado', 'V'), false) ?></label>
+            <label>Fecha pago del saldo <input type="date" name="fecha_pago_saldo" value="<?= $v('fecha_pago_saldo') ?>"></label>
         </div>
-        <p class="ayuda">Retención ICA = flete × % ICA ÷ 100. Retención fuente = 1% del flete. FOPAT = 0.1% del flete.
-           El NIT de la empresa y la póliza se toman de <a href="<?= e(ruta('empresa')) ?>" target="_blank">Empresa</a>.</p>
+        <p class="ayuda">El NIT de la empresa y la póliza se toman de <a href="<?= e(ruta('empresa')) ?>" target="_blank">Empresa</a>.</p>
     </fieldset>
 
     <div class="acciones">
-        <button type="submit" class="btn btn--primario">Guardar solicitud</button>
-        <a href="<?= e(ruta('solicitudes')) ?>" class="btn">Cancelar</a>
+        <button type="submit" class="btn btn--primario"><?= $editar ? 'Actualizar' : 'Guardar' ?> solicitud</button>
+        <a href="<?= e($editar ? ruta('solicitud.ver', ['id' => (int) $s['id']]) : ruta('solicitudes')) ?>" class="btn">Cancelar</a>
     </div>
 </form>
