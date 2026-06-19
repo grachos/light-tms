@@ -21,6 +21,14 @@ final class CatalogoRepo
         return db()->query('SELECT codigo, descripcion FROM carroceria ORDER BY descripcion')->fetchAll();
     }
 
+    /** @return list<array{codigo:string,nombre:string,descripcion:string}> */
+    public function configuraciones(): array
+    {
+        return db()->query(
+            'SELECT codigo, nombre, descripcion FROM configuracion_vehiculo ORDER BY tipo, nombre'
+        )->fetchAll();
+    }
+
     /**
      * Busca productos por nombre o código (autocompletado).
      *

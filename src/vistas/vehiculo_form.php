@@ -14,6 +14,8 @@ $val    = static fn (string $c): string => e((string) ($GLOBALS['vh'][$c] ?? '')
 
 $tenedorTxt = $editar && !empty($vh['tenedor_num_id']) ? trim(($vh['tenedor_tipo_id'] ?? '') . ' ' . $vh['tenedor_num_id']) : '';
 $propTxt    = $editar && !empty($vh['propietario_num_id']) ? trim(($vh['propietario_tipo_id'] ?? '') . ' ' . $vh['propietario_num_id']) : '';
+$configs    = (new CatalogoRepo())->configuraciones();
+$cfgActual  = (string) ($vh['cod_configuracion'] ?? '');
 ?>
 <h1><?= $editar ? 'Editar' : 'Nuevo' ?> Vehículo</h1>
 <p class="ayuda">Marca y propietario los puede heredar el RNDC del RUNT por la placa.</p>
@@ -26,7 +28,16 @@ $propTxt    = $editar && !empty($vh['propietario_num_id']) ? trim(($vh['propieta
         <legend>Datos del vehículo</legend>
         <div class="grid">
             <label>Placa * <input type="text" name="placa" maxlength="6" required style="text-transform:uppercase" value="<?= $val('placa') ?>"></label>
-            <label>Configuración * <input type="text" name="cod_configuracion" maxlength="2" required placeholder="2, 3, 55" value="<?= $val('cod_configuracion') ?>"></label>
+            <label>Configuración *
+                <select name="cod_configuracion" required>
+                    <option value="">—</option>
+                    <?php foreach ($configs as $cfg): ?>
+                        <option value="<?= e($cfg['codigo']) ?>" <?= $cfg['codigo'] === $cfgActual ? 'selected' : '' ?>>
+                            <?= e($cfg['nombre'] . ' - ' . $cfg['descripcion']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
             <label>Código marca <input type="text" name="cod_marca" maxlength="10" value="<?= $val('cod_marca') ?>"></label>
             <label>Marca <input type="text" name="marca" maxlength="30" placeholder="(la trae el RNDC)" value="<?= $val('marca') ?>"></label>
             <label>Modelo (año) <input type="number" name="ano_fabricacion" value="<?= $val('ano_fabricacion') ?>"></label>
